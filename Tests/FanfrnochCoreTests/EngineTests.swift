@@ -2,151 +2,156 @@ import Accelerate
 import Foundation
 import Testing
 import FanfrnochDSP
+import FanfrnochReference
 @testable import FanfrnochCore
 
-/// What the sound engine promises beyond matching the prototype: its level, how it chokes and
-/// stops, how it keeps its pitch and its sound at every sample rate, how it shares its voices, and
-/// how its C interface copes with what callers hand it.
+/// What the sound engine promises beyond matching the prototype: its level, how strokes on a drum
+/// run into each other and stop, how it keeps its pitch and its sound at every sample rate, how
+/// it shares its voices, and how its C interface copes with what callers hand it.
 @Suite("Engine")
 struct EngineTests: EngineHarness {
 
-    /// The same with no breath. The breath gives the bursts a DC component, and the DC blocker
-    /// takes ~20 ms to forget it after a voice stops: that would hide what the reed does.
-    private static let dry = plain.merging(["breath": 0, "puff": 0]) { $1 }
+    private static let B2: Int32 = 47
 
-    @Test("The default hit at full velocity peaks around -6 dBFS")
+    @Test("The default stroke at full velocity peaks around -6 dBFS")
     func level() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        fanfrnoch_midi(engine, 0x90, 36, 127, 0)
+        fanfrnoch_midi(engine, 0x90, Self.B2, 127, 0)
         let peak = render(engine, seconds: 2).map(abs).max() ?? 0
-        #expect(peak > 0.42 && peak < 0.56, "peak \(peak)")
+        #expect(peak > 0.42 && peak < 0.58, "peak \(peak)")
     }
 
-    @Test("A note re-struck chokes its own ring within Damp")
-    func restrike() {
-        let length = Int(Self.rate)
-        let twice = makeEngine(Self.dry)
-        defer { fanfrnoch_destroy(twice) }
-        fanfrnoch_midi(twice, 0x90, 36, 110, 0)
-        _ = render(twice, frames: length)
-        fanfrnoch_midi(twice, 0x90, 36, 110, 0)
-        let second = render(twice, frames: length)
+    // MARK: - Drums
 
-        let once = makeEngine(Self.dry)
-        defer { fanfrnoch_destroy(once) }
-        fanfrnoch_midi(once, 0x90, 36, 110, 0)
-        let lone = render(once, frames: length)
+    // Drum One: every note is the one drum. A second stroke while the first still sounds goes on
+    // from where the head is: one voice, and the level does not fall back to silence to rise again.
+    @Test("A stroke on a sounding drum continues its voice and its envelope")
+    func strokeContinuesTheDrum() {
+        let engine = makeEngine(Self.plain)
+        defer { fanfrnoch_destroy(engine) }
+        fanfrnoch_midi(engine, 0x90, Self.B2, 110, 0)
+        let first = render(engine, seconds: 0.15)
+        fanfrnoch_midi(engine, 0x90, Self.B2 + 5, 110, 0)
+        let second = render(engine, seconds: 0.15)
+        #expect(fanfrnoch_sounding_voices(engine) == 1)
+        let before = rms(first.suffix(Self.frames(0.01))), after = rms(second.prefix(Self.frames(0.01)))
+        #expect(20 * log10(after / before) > -3, "the level fell from \(before) to \(after) at the second stroke")
 
-        // The first ring is gone after Damp (10 ms): from then on the two are the same hit.
-        let damp = Int(0.010 * Self.rate)
-        let r = residualDb(second[damp...], lone[damp...])
-        #expect(r < -60, "residual \(r) dB")
+        // A fresh voice would start from silence: the first 5 ms of a stroke on a silent drum.
+        let fresh = makeEngine(Self.plain)
+        defer { fanfrnoch_destroy(fresh) }
+        fanfrnoch_midi(fresh, 0x90, Self.B2 + 5, 110, 0)
+        let start = rms(render(fresh, seconds: 0.01))
+        #expect(20 * log10(start / before) < -10)
     }
 
-    @Test("Key Up = Damp stops the note at note-off; Ring lets it ring")
-    func keyUp() {
-        func afterRelease(_ keyUp: Float) -> (sounding: Int32, rms: Double) {
-            let engine = makeEngine(Self.dry.merging(["keyup": keyUp]) { $1 })
+    @Test("Drum Many makes a drum of every note; Drum One makes one of them all")
+    func drumOneAndMany() {
+        for (drum, voices) in [(Float(0), Int32(1)), (1, 3)] {
+            let engine = makeEngine(Self.plain.merging(["drum": drum]) { $1 })
             defer { fanfrnoch_destroy(engine) }
-            fanfrnoch_midi(engine, 0x90, 36, 110, 0)
-            _ = render(engine, seconds: 0.5)
-            fanfrnoch_midi(engine, 0x80, 36, 0, 0)
-            _ = render(engine, seconds: 0.05)           // Damp is 10 ms: 100 dB down in 25 ms
-            let sounding = fanfrnoch_sounding_voices(engine)
-            return (sounding, rms(render(engine, seconds: 0.2)))
+            for note: Int32 in [47, 52, 47, 59, 52] {
+                fanfrnoch_midi(engine, 0x90, note, 100, 0)
+                _ = render(engine, seconds: 0.05)
+            }
+            #expect(fanfrnoch_sounding_voices(engine) == voices, "Drum \(drum)")
         }
-        let ring = afterRelease(0), damp = afterRelease(1)
-        #expect(ring.sounding == 1 && damp.sounding == 0)
-        #expect(ring.rms > 0.001)
-        #expect(20 * log10(damp.rms / ring.rms) < -60, "damped \(damp.rms), ringing \(ring.rms)")
     }
 
-    @Test("All Sound Off and All Notes Off choke every voice")
+    @Test("Key Up = Stop ends the rubbing at note-off; Ignore lets the stroke run its Length")
+    func keyUp() {
+        func afterRelease(_ keyUp: Float) -> Double {
+            let engine = makeEngine(Self.plain.merging(["keyup": keyUp, "length": 2000]) { $1 })
+            defer { fanfrnoch_destroy(engine) }
+            fanfrnoch_midi(engine, 0x90, Self.B2, 110, 0)
+            _ = render(engine, seconds: 0.3)
+            fanfrnoch_midi(engine, 0x80, Self.B2, 0, 0)
+            _ = render(engine, seconds: 0.3)              // Release 0.3 s: 60 dB down
+            return rms(render(engine, seconds: 0.1))
+        }
+        let ignore = afterRelease(0), stop = afterRelease(1)
+        #expect(ignore > 0.01)
+        #expect(20 * log10(stop / ignore) < -50, "stopped \(stop), rubbing \(ignore)")
+    }
+
+    // With Drum One the hand belongs to the last stroke: letting go of an earlier key leaves it.
+    @Test("Only the note-off of the stroke's own key stops the hand")
+    func noteOffOfAnotherKey() {
+        func level(releasing note: Int32) -> Double {
+            let engine = makeEngine(Self.plain.merging(["keyup": 1, "length": 2000]) { $1 })
+            defer { fanfrnoch_destroy(engine) }
+            fanfrnoch_midi(engine, 0x90, Self.B2, 110, 0)
+            _ = render(engine, seconds: 0.2)
+            fanfrnoch_midi(engine, 0x90, Self.B2 + 7, 110, 0)
+            _ = render(engine, seconds: 0.2)
+            fanfrnoch_midi(engine, 0x80, note, 0, 0)
+            _ = render(engine, seconds: 0.4)
+            return rms(render(engine, seconds: 0.1))
+        }
+        let earlier = level(releasing: Self.B2), own = level(releasing: Self.B2 + 7)
+        #expect(earlier > 0.01)
+        #expect(20 * log10(own / earlier) < -50)
+    }
+
+    @Test("All Sound Off and All Notes Off fade every voice out")
     func allOff() {
         for controller: Int32 in [120, 123] {
-            let engine = makeEngine(Self.plain)
+            let engine = makeEngine(Self.plain.merging(["drum": 1]) { $1 })
             defer { fanfrnoch_destroy(engine) }
-            fanfrnoch_midi(engine, 0x90, 36, 110, 0)
-            fanfrnoch_midi(engine, 0x90, 43, 110, 0)
+            fanfrnoch_midi(engine, 0x90, 47, 110, 0)
+            fanfrnoch_midi(engine, 0x90, 54, 110, 0)
             _ = render(engine, seconds: 0.2)
             #expect(fanfrnoch_sounding_voices(engine) == 2)
             fanfrnoch_midi(engine, 0xB0, controller, 0, 0)
-            _ = render(engine, seconds: 0.05)
+            _ = render(engine, seconds: 0.001)
             #expect(fanfrnoch_sounding_voices(engine) == 0, "CC \(controller)")
         }
     }
 
-    /// The bus's DC blocker, as the engine computes it at 96 kHz.
-    private static let dcCoefficient = Float(1 - 48 / rate)
-
-    // What is left once the voices stop is the DC blocker's memory of the reed's DC (Offset
-    // makes the bursts lopsided): it falls by the blocker's coefficient every sample, -4.2 dB in
-    // 10 ms, and is under -120 dBFS ~110 ms after the controller. So the test asks for no voice
-    // in the bus after 50 ms, which is exact, and for -120 dBFS after 150 ms.
-    @Test("After All Sound Off or All Notes Off the voices are silent within 50 ms")
+    // A voice fades 40 dB in 10 ms and leaves at -100 dB, 25 ms on; each voice's DC blocker
+    // leaves with it, so nothing is left in the bus.
+    @Test("After All Sound Off or All Notes Off the output is silent within 50 ms")
     func allOffFallsSilent() {
         for controller: Int32 in [120, 123] {
-            let engine = makeEngine(Self.dry)
+            let engine = makeEngine(["drum": 1])
             defer { fanfrnoch_destroy(engine) }
-            fanfrnoch_midi(engine, 0x90, 36, 110, 0)
-            fanfrnoch_midi(engine, 0x90, 43, 110, 0)
+            fanfrnoch_midi(engine, 0x90, 47, 110, 0)
+            fanfrnoch_midi(engine, 0x90, 54, 110, 0)
             #expect((render(engine, seconds: 0.2).map(abs).max() ?? 0) > 0.05)
             fanfrnoch_midi(engine, 0xB0, controller, 0, 0)
             _ = render(engine, seconds: 0.05)
-            let tail = render(engine, seconds: 0.1)
-            let onlyTheBlocker = zip(tail.dropFirst(), tail).allSatisfy { next, previous in
-                previous == 0 ? next == 0 : abs(next / previous - Self.dcCoefficient) < 1e-5
+            #expect(render(engine, seconds: 0.1).allSatisfy { $0 == 0 }, "CC \(controller): still sounding 50 ms after it")
+        }
+    }
+
+    // The voice retires once its ring-out is 100 dB down (and Release three times over): what
+    // stops then is far below hearing, at full velocity and at the softest.
+    @Test("A stroke ends without a step when its voice retires")
+    func retireIsSilent() throws {
+        for velocity: Int32 in [127, 1] {
+            let engine = makeEngine(["velsens": 0])
+            defer { fanfrnoch_destroy(engine) }
+            fanfrnoch_midi(engine, 0x90, Self.B2, velocity, 0)
+            var y: [Float] = [], retired: Int?
+            while y.count < Self.frames(4) {
+                y += render(engine, frames: 128)
+                if retired == nil && fanfrnoch_sounding_voices(engine) == 0 { retired = y.count }
             }
-            #expect(onlyTheBlocker, "CC \(controller): a voice is still in the bus 50 ms after it")
-            let peak = render(engine, seconds: 0.5).map(abs).max() ?? 0
-            #expect(peak == 0 || 20 * log10(peak) < -120, "CC \(controller): \(20 * log10(peak)) dBFS after 150 ms")
+            let retire = try #require(retired, "the voice has not retired within 4 s")
+            #expect(Double(retire) / Self.rate < 1.6, "retired after \(Double(retire) / Self.rate) s")
+            let around = y[(retire - Self.frames(0.05))..<(retire + Self.frames(0.05))]
+            let step = zip(around.dropFirst(), around).map { abs($0 - $1) }.max() ?? 0
+            #expect(step == 0 || 20 * log10(step) < -90, "velocity \(velocity): a step of \(20 * log10(step)) dBFS at retire")
         }
     }
 
-    // The slot's gate is open while the reed rests, so Air and the breath used to go on at a
-    // constant level until the voice retired, and the breath stopped as a step there. Since
-    // 2026-11-16 both fade with the reed. The breath fades with the reed's level, not with its
-    // decay since the hit: the voice retires on a level, so the softest hit, whose reed starts
-    // 42 dB down, must not retire with its breath still on (it did, as a step at -34 dBFS).
-    @Test("Air fades with the reed's tail, and the breath ends without a step at retire")
-    func tailFades() throws {
-        let engine = makeEngine()
-        defer { fanfrnoch_destroy(engine) }
-        fanfrnoch_midi(engine, 0x90, 36, 127, 0)
-        let x = render(engine, seconds: 8)
-        #expect(fanfrnoch_sounding_voices(engine) == 0, "the voice has not retired within 8 s")
-
-        let early = rms(x[Self.frames(2.0)..<Self.frames(2.5)])
-        let late = rms(x[Self.frames(3.0)..<Self.frames(3.5)])
-        let fall = 20 * log10(late / early)
-        #expect(fall < -12, "3.0-3.5 s is \(fall) dB re 2.0-2.5 s")
-
-        let tail = x[Self.frames(4)...]
-        let step = zip(tail.dropFirst(), tail).map { abs($0 - $1) }.max() ?? 0
-        #expect(step < 1e-5, "largest sample-to-sample difference after 4 s: \(step)")
-
-        // The softest hit with the most breath: the 50 ms either side of the block it retires in.
-        let soft = makeEngine(Self.plain.merging(["velsens": 100, "breath": 100]) { $1 })
-        defer { fanfrnoch_destroy(soft) }
-        fanfrnoch_midi(soft, 0x90, 36, 1, 0)
-        var y: [Float] = [], retired: Int?
-        while y.count < Self.frames(8) {
-            y += render(soft, frames: 128)
-            if retired == nil && fanfrnoch_sounding_voices(soft) == 0 { retired = y.count }
-        }
-        let retire = try #require(retired, "the soft voice has not retired within 8 s")
-        let around = y[(retire - Self.frames(0.05))..<(retire + Self.frames(0.05))]
-        let softStep = zip(around.dropFirst(), around).map { abs($0 - $1) }.max() ?? 0
-        #expect(20 * log10(softStep) < -90, "largest step around the soft voice's retire: \(20 * log10(softStep)) dBFS")
-    }
-
-    @Test("Silence is exact 20 s after the last hit")
+    @Test("Silence is exact 20 s after the last stroke")
     func silenceIsExact() {
-        let engine = makeEngine()
+        let engine = makeEngine(["drum": 1])
         defer { fanfrnoch_destroy(engine) }
-        fanfrnoch_midi(engine, 0x90, 36, 127, 0)
-        fanfrnoch_midi(engine, 0x90, 43, 90, 64)
+        fanfrnoch_midi(engine, 0x90, 47, 127, 0)
+        fanfrnoch_midi(engine, 0x90, 54, 90, 64)
         _ = render(engine, seconds: 20)
         #expect(fanfrnoch_sounding_voices(engine) == 0)
         let tail = render(engine, seconds: 1)
@@ -157,7 +162,7 @@ struct EngineTests: EngineHarness {
     func requestedReset() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        fanfrnoch_post_midi(engine, 0x90, 36, 127, 0)
+        fanfrnoch_post_midi(engine, 0x90, Self.B2, 127, 0)
         #expect((render(engine, seconds: 0.5).map(abs).max() ?? 0) > 0.05)
         fanfrnoch_request_reset(engine)             // what a host's AudioUnitReset does, from any thread
         #expect(render(engine, frames: 128).allSatisfy { $0 == 0 })
@@ -181,26 +186,43 @@ struct EngineTests: EngineHarness {
         #expect(fanfrnoch_last_note(engine) == 36)
     }
 
-    // A block plays at most 256 events. Posted ones beyond that wait for the next block, so a
-    // dense controller stream (a large offline block) does not lose the note-off at its end.
-    @Test("MIDI posted beyond a block's 256 events plays in the next block")
-    func postedMidiBeyondABlock() {
-        let engine = makeEngine(Self.dry.merging(["keyup": 1]) { $1 })
-        defer { fanfrnoch_destroy(engine) }
-        fanfrnoch_post_midi(engine, 0x90, 36, 110, 0)
-        for _ in 0..<298 { fanfrnoch_post_midi(engine, 0xB0, 1, 0, 0) }    // the mod wheel at rest
-        fanfrnoch_post_midi(engine, 0x80, 36, 0, 0)                         // the 300th event
-        _ = render(engine, frames: 128)
-        #expect(fanfrnoch_sounding_voices(engine) == 1, "the note did not start, or its note-off played in the first block")
-        _ = render(engine, frames: 128)
-        #expect(fanfrnoch_sounding_voices(engine) == 0, "the note-off was lost")
+    // A reset starts every drum's alternation again: the stroke after it is the first hand's,
+    // as on a fresh engine.
+    @Test("After a reset the hands alternate again from the first")
+    func resetRestartsTheHands() {
+        func play(_ engine: OpaquePointer) -> [Float] {
+            fanfrnoch_midi(engine, 0x90, Self.B2, 110, 0)
+            return render(engine, seconds: 0.5)
+        }
+        let used = makeEngine(Self.plain.merging(["alternate": 12]) { $1 })
+        defer { fanfrnoch_destroy(used) }
+        _ = play(used)
+        fanfrnoch_reset(used)
+        let fresh = makeEngine(Self.plain.merging(["alternate": 12]) { $1 })
+        defer { fanfrnoch_destroy(fresh) }
+        #expect(play(used) == play(fresh))
     }
 
-    @Test("MIDI at a sample offset starts the hit at that sample")
+    // A block plays at most 256 events. Posted ones beyond that wait for the next block, so a
+    // dense controller stream (a large offline block) does not lose the note at its end.
+    @Test("MIDI posted beyond a block's 256 events plays in the next block")
+    func postedMidiBeyondABlock() {
+        let engine = makeEngine(Self.plain)
+        defer { fanfrnoch_destroy(engine) }
+        fanfrnoch_post_midi(engine, 0x90, 47, 110, 0)
+        for _ in 0..<298 { fanfrnoch_post_midi(engine, 0xB0, 1, 0, 0) }    // the mod wheel at rest
+        fanfrnoch_post_midi(engine, 0x90, 52, 110, 0)                       // the 300th event
+        _ = render(engine, frames: 128)
+        #expect(fanfrnoch_last_note(engine) == 47, "the first note did not play, or the last one played in the first block")
+        _ = render(engine, frames: 128)
+        #expect(fanfrnoch_last_note(engine) == 52, "the last note was lost")
+    }
+
+    @Test("MIDI at a sample offset starts the stroke at that sample")
     func sampleOffset() {
         let engine = makeEngine(Self.plain)
         defer { fanfrnoch_destroy(engine) }
-        fanfrnoch_midi(engine, 0x90, 36, 110, 37)
+        fanfrnoch_midi(engine, 0x90, Self.B2, 110, 37)
         let out = render(engine, frames: 128)
         #expect(out[..<37].allSatisfy { $0 == 0 })
         #expect(out[37...].contains { $0 != 0 })
@@ -210,26 +232,26 @@ struct EngineTests: EngineHarness {
     func setsAreSeparate() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        let ring = Self.index("ring")
-        fanfrnoch_set_plain(engine, 5, ring, 1)
-        fanfrnoch_set_program(engine, 3, 2)
-        #expect(abs(fanfrnoch_get_plain(engine, Self.keyboard, ring) - 4) < 1e-5)   // stored normalised
-        #expect(abs(fanfrnoch_get_plain(engine, 5, ring) - 1) < 1e-5)
-        #expect(fanfrnoch_get_program(engine, 3) == 2 && fanfrnoch_get_program(engine, Self.keyboard) == 0)
-        #expect(abs(fanfrnoch_get_plain(engine, 3, ring) - 8) < 1e-5)     // Khomus rings 8 s
-        fanfrnoch_set_normalised(engine, 16, ring, 0.25)
-        #expect(fanfrnoch_get_normalised(engine, 16, ring) == 0.25)
+        let release = Self.index("release")
+        fanfrnoch_set_plain(engine, 5, release, 1)
+        fanfrnoch_set_program(engine, 3, 3)
+        #expect(abs(fanfrnoch_get_plain(engine, Self.keyboard, release) - 0.3) < 1e-5)   // stored normalised
+        #expect(abs(fanfrnoch_get_plain(engine, 5, release) - 1) < 1e-5)
+        #expect(fanfrnoch_get_program(engine, 3) == 3 && fanfrnoch_get_program(engine, Self.keyboard) == 0)
+        #expect(abs(fanfrnoch_get_plain(engine, 3, release) - 60.0 / 440) < 1e-5)     // the Zambomba rings 0.14 s
+        fanfrnoch_set_normalised(engine, 16, release, 0.25)
+        #expect(fanfrnoch_get_normalised(engine, 16, release) == 0.25)
     }
 
     @Test("Recording a set's program changes no knob")
     func programIndexOnly() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        let ring = Self.index("ring")
-        fanfrnoch_set_plain(engine, 4, ring, 1)
+        let release = Self.index("release")
+        fanfrnoch_set_plain(engine, 4, release, 1)
         fanfrnoch_set_program_index(engine, 4, 2)
         #expect(fanfrnoch_get_program(engine, 4) == 2)
-        #expect(abs(fanfrnoch_get_plain(engine, 4, ring) - 1) < 1e-5)
+        #expect(abs(fanfrnoch_get_plain(engine, 4, release) - 1) < 1e-5)
         fanfrnoch_set_program_index(engine, 4, -1)
         fanfrnoch_set_program_index(engine, 4, fanfrnoch_num_programs())
         #expect(fanfrnoch_get_program(engine, 4) == 2)
@@ -243,12 +265,12 @@ struct EngineTests: EngineHarness {
     func outOfRange() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        let ring = Self.index("ring")
+        let release = Self.index("release")
         for set: Int32 in [-1, 17] {
-            fanfrnoch_set_plain(engine, set, ring, 1)
-            fanfrnoch_set_normalised(engine, set, ring, 1)
+            fanfrnoch_set_plain(engine, set, release, 1)
+            fanfrnoch_set_normalised(engine, set, release, 1)
             fanfrnoch_set_program(engine, set, 1)
-            #expect(fanfrnoch_get_plain(engine, set, ring) == 0 && fanfrnoch_get_normalised(engine, set, ring) == 0)
+            #expect(fanfrnoch_get_plain(engine, set, release) == 0 && fanfrnoch_get_normalised(engine, set, release) == 0)
             #expect(fanfrnoch_get_program(engine, set) == 0)
         }
         for index: Int32 in [-1, Int32(fanfrnoch_num_params())] {
@@ -270,76 +292,53 @@ struct EngineTests: EngineHarness {
         fanfrnoch_set_pad_group(engine, 0, 17)
         fanfrnoch_set_pad_group(engine, 0, -1)
         #expect(fanfrnoch_pad_group(engine, 0) == group)
-        #expect(abs(fanfrnoch_get_plain(engine, Self.keyboard, ring) - 4) < 1e-5)
+        #expect(abs(fanfrnoch_get_plain(engine, Self.keyboard, release) - 0.3) < 1e-5)
 
         // A null engine: every call returns quietly.
         var left = [Float](repeating: 1, count: 16)
         fanfrnoch_destroy(nil)
         fanfrnoch_prepare(nil, 48_000); fanfrnoch_reset(nil); fanfrnoch_request_reset(nil)
-        fanfrnoch_set_plain(nil, 0, ring, 1); fanfrnoch_set_normalised(nil, 0, ring, 1); fanfrnoch_set_program(nil, 0, 1)
+        fanfrnoch_set_plain(nil, 0, release, 1); fanfrnoch_set_normalised(nil, 0, release, 1); fanfrnoch_set_program(nil, 0, 1)
         fanfrnoch_set_mode(nil, 1); fanfrnoch_set_pad_note(nil, 0, 40); fanfrnoch_set_pad_group(nil, 0, 1)
         fanfrnoch_send_to_pad(nil, 0); fanfrnoch_load_default_kit(nil)
         fanfrnoch_post_midi(nil, 0x90, 36, 100, 0); fanfrnoch_midi(nil, 0x90, 36, 100, 0)
         left.withUnsafeMutableBufferPointer { fanfrnoch_process(nil, $0.baseAddress, nil, 16) }
         #expect(left.allSatisfy { $0 == 0 })
-        #expect(fanfrnoch_get_plain(nil, 0, ring) == 0 && fanfrnoch_get_program(nil, 0) == 0 && fanfrnoch_get_mode(nil) == 0)
+        #expect(fanfrnoch_get_plain(nil, 0, release) == 0 && fanfrnoch_get_program(nil, 0) == 0 && fanfrnoch_get_mode(nil) == 0)
         #expect(fanfrnoch_latency(nil) == 0 && fanfrnoch_sounding_voices(nil) == 0 && fanfrnoch_last_note(nil) == -1)
         #expect(fanfrnoch_pad_note(nil, 0) == -1 && fanfrnoch_pad_group(nil, 0) == 0)
 
         var info = FanfrnochParamInfo()
-        fanfrnoch_param_info(ring, &info)
+        fanfrnoch_param_info(release, &info)
         fanfrnoch_param_info(-1, &info)
         #expect(info.identifier == nil && info.kind == 0 && info.maxValue == 0)
     }
+
     // MARK: - Sample rates and oversampling
 
-    /// The fundamental of `x` in Hz: the autocorrelation's highest peak from its first zero
-    /// crossing up to 1.5 periods of `expected`, placed between samples by a parabola. The window
-    /// keeps out an octave error (half or twice the period) without steering the answer.
-    private func fundamental(_ x: [Float], rate: Double, expected: Double) -> Double {
-        let maxLag = Int(1.5 * rate / expected)
-        let length = x.count - maxLag
-        var r = [Float](repeating: 0, count: maxLag + 1)
-        x.withUnsafeBufferPointer { signal in
-            vDSP_conv(signal.baseAddress!, 1, signal.baseAddress!, 1, &r, 1, vDSP_Length(maxLag + 1), vDSP_Length(length))
-        }
-        guard let firstNegative = r.firstIndex(where: { $0 < 0 }) else { return 0 }
-        var best = firstNegative
-        for lag in firstNegative..<maxLag where r[lag] > r[best] { best = lag }
-        guard best > firstNegative && best < maxLag else { return rate / Double(best) }
-        let a = Double(r[best - 1]), b = Double(r[best]), c = Double(r[best + 1])
-        return rate / (Double(best) + 0.5 * (a - c) / (a - 2 * b + c))
-    }
-
-    /// Molln (its mouth held still) on note 57, A3, rendered by `engine` at `rate`: its fundamental
-    /// from 0.3 s to 0.55 s.
-    private func mollnPitch(_ engine: OpaquePointer, rate: Double) -> Double {
+    /// A steady stroke on note 57, A3, rendered by `engine` at `rate`: its fundamental from 0.3 s
+    /// to 0.55 s.
+    private func steadyPitch(_ engine: OpaquePointer, rate: Double) -> Double {
         fanfrnoch_midi(engine, 0x90, 57, 110, 0)
         let out = render(engine, seconds: 0.55, at: rate)
         return fundamental(Array(out[Self.frames(0.3, at: rate)...]), rate: rate, expected: 220)
     }
 
-    private func mollnEngine(rate: Double) -> OpaquePointer {
-        let engine = makeEngine(rate: rate)
-        fanfrnoch_set_program(engine, Self.keyboard, 1)          // Molln: Sweep 0
-        return engine
-    }
-
     @Test("The pitch is right at every rate", arguments: [44_100.0, 48_000, 88_200, 96_000, 192_000])
     func pitchAtEveryRate(rate: Double) {
-        let engine = mollnEngine(rate: rate)
+        let engine = makeEngine(Self.steady, rate: rate)
         defer { fanfrnoch_destroy(engine) }
-        let hz = mollnPitch(engine, rate: rate)
+        let hz = steadyPitch(engine, rate: rate)
         #expect(abs(hz / 220 - 1) < 0.001, "\(rate) Hz: \(hz) Hz")
     }
 
     /// The share of the power below 20 kHz that lies more than 20 Hz from every harmonic of
     /// `f0`, in dB: what aliasing folds between the harmonics. A Blackman-Harris window over
-    /// 0.68 s from 0.2 s into the hit, when Clang (20 ms) has died away.
+    /// 0.68-0.74 s from 0.3 s into the stroke, when the attack is over.
     private func aliasDb(_ x: [Float], rate: Double, f0: Double) -> Double {
         let log2n = vDSP_Length(rate < 88_200 ? 15 : 16)
         let n = 1 << Int(log2n)
-        let start = Self.frames(0.2, at: rate)
+        let start = Self.frames(0.3, at: rate)
         guard let setup = vDSP_create_fftsetup(log2n, FFTRadix(kFFTRadix2)) else { preconditionFailure("no FFT") }
         defer { vDSP_destroy_fftsetup(setup) }
         let frame = (0..<n).map { i -> Float in
@@ -369,24 +368,32 @@ struct EngineTests: EngineHarness {
         return 10 * log10(between / total)
     }
 
-    // At 48 kHz the voices run at 96 kHz, as they do at a 96 kHz host, and the decimator keeps
-    // what would fold back out of the band below 20 kHz.
-    @Test("At 48 kHz the bright high note aliases no more than at 96 kHz")
+    // The brightest steady tone (Stick 0.95, no darkening) at 860 Hz (A5 tuned 40 cents down):
+    // the warped cosine's corners reach far above the band. Played at the host's rate, as the
+    // prototype does (through the reference), what folds back at 44.1 kHz is over the -60 dB the
+    // design allows; with the engine's 2x stage it is far under it.
+    @Test("At 44.1 kHz the brightest tone's alias products stay 60 dB down; without the 2x stage they would not")
     func aliasing() {
-        let bright: [String: Float] = ["edge": 40, "vary": 0, "air": 0, "breath": 0, "puff": 0]
-        let f0 = 440 * pow(2, (84 - 69) / 12.0)
-        func alias(at rate: Double) -> Double {
-            let engine = makeEngine(bright, rate: rate)
-            defer { fanfrnoch_destroy(engine) }
-            fanfrnoch_midi(engine, 0x90, 84, 110, 0)
-            return aliasDb(render(engine, seconds: 1, at: rate), rate: rate, f0: f0)
-        }
-        let at48 = alias(at: 48_000), at96 = alias(at: 96_000)
-        #expect(at48 <= at96 + 3, "48 kHz: \(at48) dB, 96 kHz: \(at96) dB")
+        let rate = 44_100.0
+        let bright: [String: Float] = Self.steady.merging(["stick": 0.95, "stickvel": 0, "tune": -40]) { $1 }
+        let f0 = 440 * pow(2, (81 - 40.0 / 100 - 69) / 12)
+        let engine = makeEngine(bright, rate: rate)
+        defer { fanfrnoch_destroy(engine) }
+        fanfrnoch_midi(engine, 0x90, 81, 127, 0)
+        let oversampled = aliasDb(render(engine, seconds: 1.2, at: rate), rate: rate, f0: f0)
+
+        var p = PrototypeScores.referenceParams(bright)
+        let stroke = FanfrnochRefEvent(time: 0, drum: 0, hz: f0, velocity: 1, params: 0, noteOff: 0)
+        var direct = [Float](repeating: 0, count: Self.frames(1.2, at: rate))
+        fanfrnoch_ref_render([stroke], 1, &p, 1, 1, rate, 0, &direct, Int32(direct.count))
+        let atHostRate = aliasDb(direct, rate: rate, f0: f0)
+        print(String(format: "aliasing at 44.1 kHz, Stick 0.95, 860 Hz: %.1f dB with the 2x stage, %.1f dB without", oversampled, atHostRate))
+        #expect(oversampled < -60, "with the 2x stage: \(oversampled) dB")
+        #expect(atHostRate > -60, "without it: \(atHostRate) dB")
     }
 
-    // Below 88.2 kHz the output is the voices at twice the rate, decimated: the same hit at the
-    // doubled rate, taken every second sample, lags behind by the decimator's delay. The hit is
+    // Below 88.2 kHz the output is the voices at twice the rate, decimated: the same stroke at the
+    // doubled rate, taken every second sample, lags behind by the decimator's delay. The stroke is
     // 37 frames into the block at the host rate and 74 at the doubled rate: the same instant.
     @Test("Latency is the decimator's delay")
     func latency() {
@@ -396,8 +403,8 @@ struct EngineTests: EngineHarness {
             #expect(fanfrnoch_latency(doubled) == 0)
             let latency = Int(fanfrnoch_latency(host))
             #expect(latency == 29, "\(rate) Hz: the 119-tap filter's centre is 59 samples, 29 pairs and one, in")
-            fanfrnoch_midi(host, 0x90, 36, 110, 37)
-            fanfrnoch_midi(doubled, 0x90, 36, 110, 74)
+            fanfrnoch_midi(host, 0x90, Self.B2, 110, 37)
+            fanfrnoch_midi(doubled, 0x90, Self.B2, 110, 74)
             let y = render(host, seconds: 0.5, at: rate), z = render(doubled, seconds: 0.5, at: 2 * rate)
             func correlation(_ lag: Int) -> Double {
                 var sum = 0.0
@@ -420,23 +427,23 @@ struct EngineTests: EngineHarness {
         }
     }
 
-    // A rate change mid-ring starts from silence: the first block is exactly zero, and what is
+    // A rate change mid-stroke starts from silence: the first block is exactly zero, and what is
     // played then is what a fresh engine at that rate plays, sample for sample.
     @Test("Re-preparing changes the rate cleanly")
     func rePrepareChangesRate() {
-        let engine = mollnEngine(rate: 96_000)
+        let engine = makeEngine(Self.steady, rate: 96_000)
         defer { fanfrnoch_destroy(engine) }
-        #expect(abs(mollnPitch(engine, rate: 96_000) / 220 - 1) < 0.001)
+        #expect(abs(steadyPitch(engine, rate: 96_000) / 220 - 1) < 0.001)
         for rate in [44_100.0, 96_000] {
-            fanfrnoch_prepare(engine, rate)                       // the last note still rings
+            fanfrnoch_prepare(engine, rate)                       // the last stroke still sounds
             let first = render(engine, frames: 128)
             #expect(first.allSatisfy { $0 == 0 }, "\(rate) Hz: the first block after prepare")
-            let hz = mollnPitch(engine, rate: rate)
+            let hz = steadyPitch(engine, rate: rate)
             #expect(abs(hz / 220 - 1) < 0.001, "\(rate) Hz: \(hz) Hz")
             fanfrnoch_reset(engine)
             fanfrnoch_midi(engine, 0x90, 57, 110, 0)
             let again = render(engine, seconds: 0.5, at: rate)
-            let fresh = mollnEngine(rate: rate)
+            let fresh = makeEngine(Self.steady, rate: rate)
             defer { fanfrnoch_destroy(fresh) }
             fanfrnoch_midi(fresh, 0x90, 57, 110, 0)
             #expect(again == render(fresh, seconds: 0.5, at: rate), "\(rate) Hz: differs from a fresh engine")
@@ -444,8 +451,9 @@ struct EngineTests: EngineHarness {
     }
 
     // Every knob at its minimum, every knob at its maximum (Pan too: one channel is silent), and
-    // the sharpest mouth swept to the top on a high note. Each is played from the lowest note to
-    // the highest, hard and soft.
+    // the sharpest body following the pitch up on a high note. Each is played from the lowest note
+    // to the highest, hard and soft. (At the minimum every amount is -100 %: the soft strokes'
+    // VEL amounts lengthen the stroke, and the LFOs turn Volume up.)
     @Test("Extreme knobs stay finite", arguments: [44_100.0, 96_000])
     func extremeKnobsStayFinite(rate: Double) {
         func play(_ setKnobs: (OpaquePointer) -> Void, notes: [Int32]) -> (left: [Float], right: [Float]) {
@@ -470,8 +478,9 @@ struct EngineTests: EngineHarness {
         let cases: [(name: String, render: (left: [Float], right: [Float]))] = [
             ("all at minimum", play(all(0), notes: everyNote)),
             ("all at maximum", play(all(1), notes: everyNote)),
-            ("Reso 40, Vowel 3300 Hz, Sweep +24 st",
-             play({ self.setKnobs($0, ["reso": 40, "vowel": 3300, "sweep": 24]) }, notes: [96])),
+            ("Pot Q 20 at 1500 Hz +18 dB, Skin Q 40 at 1500 Hz +6 dB, Track 100 %",
+             play({ self.setKnobs($0, ["potq": 20, "pot": 1500, "potlevel": 18, "skinq": 40, "skin": 1500, "skinlevel": 6,
+                                       "track": 100]) }, notes: [96])),
         ]
         for c in cases {
             let samples = c.render.left + c.render.right
@@ -484,14 +493,21 @@ struct EngineTests: EngineHarness {
 
     // MARK: - The voice pool
 
-    /// Plays `hits` (note, velocity) at every 32nd note at 120 BPM for 4 s, in `mode`, with Ring
-    /// 15 s in every set and every pad's group Off, and checks the pool after every block.
-    private func flood(rate: Double, mode: Int32, hits: (Int) -> [(note: Int32, velocity: Int32)]) {
+    /// The longest sound: the hand rubs for 2 s and the head rings 3 s.
+    private static let long: [String: Float] = ["length": 2000, "release": 3]
+
+    /// Plays `hits` (note, velocity) at every 32nd note at 120 BPM for 4 s, in `mode`, with the
+    /// longest Fanfrnoch in every set and every pad on C2 with its group Off, and checks the pool
+    /// after every block.
+    private func flood(rate: Double, mode: Int32, knobs: [String: Float] = [:], hits: (Int) -> [(note: Int32, velocity: Int32)]) {
         let engine = makeEngine(rate: rate)
         defer { fanfrnoch_destroy(engine) }
         fanfrnoch_set_mode(engine, mode)
-        for set: Int32 in 0..<Int32(FANFRNOCH_NUM_SETS) { fanfrnoch_set_plain(engine, set, Self.index("ring"), 15) }
-        for pad: Int32 in 0..<Int32(FANFRNOCH_NUM_PADS) { fanfrnoch_set_pad_group(engine, pad, 0) }
+        for set: Int32 in 0..<Int32(FANFRNOCH_NUM_SETS) {
+            fanfrnoch_set_program(engine, set, 0)
+            setKnobs(engine, Self.long.merging(["scrape": 0]) { $1 }.merging(knobs) { $1 }, set: set)
+        }
+        for pad: Int32 in 0..<Int32(FANFRNOCH_NUM_PADS) { fanfrnoch_set_pad_group(engine, pad, 0); fanfrnoch_set_pad_note(engine, pad, 36) }
         let step = 60.0 / 120 / 8, total = Self.frames(4, at: rate)
         var out = [Float](repeating: 0, count: total)
         var nextStep = 0, start = 0, mostSounding: Int32 = 0
@@ -512,35 +528,36 @@ struct EngineTests: EngineHarness {
         #expect(mostSounding <= Int32(FANFRNOCH_MAX_VOICES), "\(rate) Hz, \(name): \(mostSounding) voices sounded")
         #expect(mostSounding == Int32(FANFRNOCH_MAX_VOICES), "\(rate) Hz, \(name): the pool was never full")
         #expect(out.allSatisfy { $0.isFinite }, "\(rate) Hz, \(name): NaN or Inf")
-        // No voice is cut: the biggest step is what sixteen hits starting together make (0.18 at
-        // 96 kHz, 0.39 at 44.1 kHz, where a sample is twice as long). Cutting the voices being
-        // choked, as a pool of 20 slots must, makes it 0.68 and 0.56.
+        // No voice is cut: a stolen voice fades in 3 ms, and a stroke on a sounding drum goes on
+        // from where the head is. The biggest step is then the slips of sixteen loud voices at
+        // once. (No Scrape and low notes here: sixteen strokes starting together would make their
+        // sixteen bursts of noise the biggest step, and high notes slip faster.)
         let biggestStep = zip(out.dropFirst(), out).map { abs($0 - $1) }.max() ?? 0
         let bound: Float = rate < 88_200 ? 0.45 : 0.25
         #expect(biggestStep <= bound, "\(rate) Hz, \(name): a step of \(biggestStep)")
     }
 
-    // All 16 pads of the default kit, in no group, on every 32nd note, each a little softer than
-    // the one before it in turn: at every step sixteen voices start while the sixteen before them
-    // are choked: 32 voices in the pool. And the keyboard running up 24 keys, a key per
-    // 32nd note: 24 voices would ring.
-    @Test("A flood of hits stays within 16 voices", arguments: [44_100.0, 96_000])
+    // All 16 pads, each a drum of its own (Group Off), on every 32nd note, each a little softer than
+    // the one before it in turn: sixteen drums keep their sixteen voices. And the keyboard with Drum
+    // Many running up 24 keys, a key per 32nd note: 24 drums would sound.
+    @Test("A flood of strokes stays within 16 voices", arguments: [44_100.0, 96_000])
     func stealingStaysBounded(rate: Double) {
         flood(rate: rate, mode: Int32(FANFRNOCH_MODE_PADS)) { step in
             (0..<Int32(FANFRNOCH_NUM_PADS)).map { (Int32(FANFRNOCH_FIRST_PAD_NOTE) + $0, Int32(127 - 3 * ((Int($0) + step) % 16))) }
         }
-        flood(rate: rate, mode: Int32(FANFRNOCH_MODE_KEYBOARD)) { step in [(Int32(36 + step % 24), Int32(127))] }
+        flood(rate: rate, mode: Int32(FANFRNOCH_MODE_KEYBOARD), knobs: ["drum": 1]) { step in [(Int32(36 + step % 24), Int32(127))] }
     }
 
-    // Keys ring for 15 s while the pads are flooded: the pool of 16 is shared by both origins, so
-    // the pads steal keyboard voices and one another, and never more than 16 sound.
-    @Test("Pads flooded over ringing keys stay within 16 voices", arguments: [44_100.0, 96_000])
+    // Twelve keys sound for 5 s while the pads are flooded: the pool of 16 is shared by both
+    // origins, so the pads steal keyboard voices and one another, and never more than 16 sound.
+    @Test("Pads flooded over sounding keys stay within 16 voices", arguments: [44_100.0, 96_000])
     func mixedFloodStaysBounded(rate: Double) {
         let engine = makeEngine(rate: rate)
         defer { fanfrnoch_destroy(engine) }
-        for set: Int32 in 0..<Int32(FANFRNOCH_NUM_SETS) { fanfrnoch_set_plain(engine, set, Self.index("ring"), 15) }
+        for set: Int32 in 0..<Int32(FANFRNOCH_NUM_SETS) { setKnobs(engine, Self.long, set: set) }
+        setKnobs(engine, ["drum": 1])
         for pad: Int32 in 0..<Int32(FANFRNOCH_NUM_PADS) { fanfrnoch_set_pad_group(engine, pad, 0) }
-        for key: Int32 in 0..<12 { fanfrnoch_midi(engine, 0x90, 48 + key, 100, 0) }       // twelve keys ring
+        for key: Int32 in 0..<12 { fanfrnoch_midi(engine, 0x90, 48 + key, 100, 0) }       // twelve drums sound
         var out = render(engine, seconds: 0.2, at: rate)
         #expect(fanfrnoch_sounding_voices(engine) == 12)
         fanfrnoch_set_mode(engine, Int32(FANFRNOCH_MODE_PADS))
@@ -569,25 +586,28 @@ struct EngineTests: EngineHarness {
         #expect(out.allSatisfy { $0.isFinite }, "\(rate) Hz: NaN or Inf")
     }
 
-    // Sixteen keys ring, the first one soft, and a 17th steals the soft key's voice: what is heard
-    // is the soft key damped in 3 ms as the 17th is struck, the other fifteen ringing on.
+    // Sixteen drums sound (Drum Many), the first one soft, and a 17th steals the soft drum's voice:
+    // it fades out in 3 ms as the 17th is struck, and from then on what is heard is the other
+    // fifteen and the 17th, as if the soft one had never been struck. No randomness, so the voices'
+    // seeds do not matter.
     @Test("The quietest voice is stolen, with a 3 ms fade")
     func stealsTheQuietest() {
-        func play(releasing: Bool) -> [Float] {
-            let engine = makeEngine(Self.dry.merging(["ring": 15, "keyup": 1, "damp": 3, "volume": -24]) { $1 })
+        func play(withSoft: Bool) -> [Float] {
+            let engine = makeEngine(Self.plain.merging(Self.long) { $1 }.merging(["drum": 1, "volume": -24]) { $1 })
             defer { fanfrnoch_destroy(engine) }
-            fanfrnoch_midi(engine, 0x90, 40, 20, 0)
+            if withSoft { fanfrnoch_midi(engine, 0x90, 40, 20, 0) }
             for note: Int32 in 41..<56 { fanfrnoch_midi(engine, 0x90, note, 127, 0) }
-            var out = render(engine, seconds: 0.2)
-            #expect(fanfrnoch_sounding_voices(engine) == 16)
-            if releasing { fanfrnoch_midi(engine, 0x80, 40, 0, 0) }
+            _ = render(engine, seconds: 0.2)
+            #expect(fanfrnoch_sounding_voices(engine) == (withSoft ? 16 : 15))
             fanfrnoch_midi(engine, 0x90, 60, 127, 0)
-            out += render(engine, seconds: 0.3)
+            let out = render(engine, seconds: 0.3)
             #expect(fanfrnoch_sounding_voices(engine) == 16)
             return out
         }
-        let r = residualDb(play(releasing: false), play(releasing: true))
-        #expect(r < -100, "residual \(r) dB")
+        let stolen = play(withSoft: true), without = play(withSoft: false)
+        let fade = Self.frames(0.010)
+        #expect(residualDb(stolen[fade...], without[fade...]) < -100, "after the fade")
+        #expect(residualDb(stolen[..<Self.frames(0.002)], without[..<Self.frames(0.002)]) > -60, "the soft drum was cut, not faded")
     }
 
     @Test("Pad hits are counted per pad, in pad mode only")
@@ -613,6 +633,30 @@ struct EngineTests: EngineHarness {
         #expect(fanfrnoch_pad_hits(nil, 0) == 0)
     }
 
+    // Not a promise but a measure: sixteen voices of the longest default sound (every pad a drum of
+    // its own) for 2 s at 48 kHz, where they run at 96 kHz. The time per voice is printed for the
+    // phase's records; it is meaningful in a release build (`swift test -c release`).
+    @Test("Sixteen voices render, and the time each takes is measured")
+    func cpuPerVoice() {
+        let rate = 48_000.0
+        let engine = makeEngine(rate: rate)
+        defer { fanfrnoch_destroy(engine) }
+        fanfrnoch_set_mode(engine, Int32(FANFRNOCH_MODE_PADS))
+        for pad: Int32 in 0..<Int32(FANFRNOCH_NUM_PADS) {
+            fanfrnoch_set_program(engine, pad + 1, 0)
+            setKnobs(engine, Self.long.merging(["potlevel": 0, "skinlevel": 0]) { $1 }, set: pad + 1)
+            fanfrnoch_set_pad_group(engine, pad, 0)
+            fanfrnoch_midi(engine, 0x90, Int32(FANFRNOCH_FIRST_PAD_NOTE) + pad, 100, 0)
+        }
+        let seconds = 2.0
+        let clock = ContinuousClock()
+        let elapsed = clock.measure { _ = render(engine, seconds: seconds, at: rate) }
+        #expect(fanfrnoch_sounding_voices(engine) == 16)
+        let share = Double(elapsed.components.attoseconds) / 1e18 + Double(elapsed.components.seconds)
+        print(String(format: "CPU: 16 voices for %.0f s at 48 kHz took %.3f s: %.2f %% of one core per voice",
+                     seconds, share, 100 * share / seconds / 16))
+    }
+
     // MARK: - MIDI controllers
 
     /// Every knob of every pad's set, normalised.
@@ -620,19 +664,22 @@ struct EngineTests: EngineHarness {
         (1...Int32(FANFRNOCH_NUM_PADS)).map { set in (0..<fanfrnoch_num_params()).map { fanfrnoch_get_normalised(engine, set, $0) } }
     }
 
+    /// The knobs: the parameters that come with a controller.
+    private static let numKnobs = Int32(Parameters.all.filter { Controllers.standard(for: $0) != nil }.count)
+
     @Test("A controller moves its keyboard knob: 127 the top, 64 the middle of a bipolar knob; no pad moves")
     func controllerMovesKnob() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
         fanfrnoch_set_mode(engine, Int32(FANFRNOCH_MODE_PADS))         // a controller moves the keyboard set in pad mode too
         let pads = padSets(engine)
-        let vowel = Self.index("vowel"), pan = Self.index("pan")
+        let stick = Self.index("stick"), pan = Self.index("pan")
         let before = fanfrnoch_changes(engine)
 
         fanfrnoch_midi(engine, 0xB0, 74, 127, 0)
         _ = render(engine, frames: 128)
-        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, vowel) == 1)
-        #expect(abs(fanfrnoch_get_plain(engine, Self.keyboard, vowel) - 3300) < 0.5)
+        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, stick) == 1)
+        #expect(abs(fanfrnoch_get_plain(engine, Self.keyboard, stick) - 0.95) < 1e-5)
         #expect(fanfrnoch_changes(engine) != before)
 
         let moved = fanfrnoch_changes(engine)
@@ -653,13 +700,13 @@ struct EngineTests: EngineHarness {
     @Test("A controller is applied at its sample offset, in the order of the block's events")
     func controllerAtItsOffset() {
         let volume = Self.index("volume")
-        func ringing() -> OpaquePointer {
+        func sounding() -> OpaquePointer {
             let engine = makeEngine(Self.plain)
-            fanfrnoch_midi(engine, 0x90, 36, 120, 0)
+            fanfrnoch_midi(engine, 0x90, Self.B2, 120, 0)
             _ = render(engine, seconds: 0.1)
             return engine
         }
-        let atOffset = ringing(), split = ringing(), atStart = ringing(), untouched = ringing()
+        let atOffset = sounding(), split = sounding(), atStart = sounding(), untouched = sounding()
         defer { for engine in [atOffset, split, atStart, untouched] { fanfrnoch_destroy(engine) } }
 
         fanfrnoch_midi(atOffset, 0xB0, 7, 0, 50)
@@ -678,17 +725,17 @@ struct EngineTests: EngineHarness {
 
     @Test("A note after a controller in the same block plays the controller's knob")
     func controllerBeforeANote() {
-        let stroke = Self.index("stroke")
-        let engine = makeEngine(Self.plain)                        // Stroke Out
+        let stick = Self.index("stick")
+        let engine = makeEngine(Self.plain)
         defer { fanfrnoch_destroy(engine) }
-        let cc = fanfrnoch_get_controller(engine, stroke)
-        fanfrnoch_midi(engine, 0x90, 36, 110, 20)
-        fanfrnoch_midi(engine, 0xB0, cc, 64, 10)                      // Stroke In, before the note
+        let cc = fanfrnoch_get_controller(engine, stick)
+        fanfrnoch_midi(engine, 0x90, Self.B2, 110, 20)
+        fanfrnoch_midi(engine, 0xB0, cc, 0, 10)                       // Stick 0.5, before the note
         let played = render(engine, frames: 4_096)
 
-        let reference = makeEngine(Self.plain.merging(["stroke": 1]) { $1 })
+        let reference = makeEngine(Self.plain.merging(["stick": 0.5]) { $1 })
         defer { fanfrnoch_destroy(reference) }
-        fanfrnoch_midi(reference, 0x90, 36, 110, 20)
+        fanfrnoch_midi(reference, 0x90, Self.B2, 110, 20)
         #expect(played == render(reference, frames: 4_096))
     }
 
@@ -696,32 +743,32 @@ struct EngineTests: EngineHarness {
     func learnTakesNextCC() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        let edge = Self.index("edge")
-        let standard = fanfrnoch_standard_controller(edge)
+        let split = Self.index("split")
+        let standard = fanfrnoch_standard_controller(split)
         #expect(fanfrnoch_learning(engine) == -1)
-        fanfrnoch_learn(engine, edge)
-        #expect(fanfrnoch_learning(engine) == edge)
+        fanfrnoch_learn(engine, split)
+        #expect(fanfrnoch_learning(engine) == split)
         let before = fanfrnoch_changes(engine)
 
         fanfrnoch_midi(engine, 0xB3, 40, 127, 0)
         _ = render(engine, frames: 128)
         #expect(fanfrnoch_learning(engine) == -1)
-        #expect(fanfrnoch_get_controller(engine, edge) == 40)
-        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, edge) == 1)
+        #expect(fanfrnoch_get_controller(engine, split) == 40)
+        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, split) == 1)
         #expect(fanfrnoch_changes(engine) != before)
 
         fanfrnoch_midi(engine, 0xB0, standard, 0, 0)                 // the one it came with moves it no more
         fanfrnoch_midi(engine, 0xB0, 41, 0, 0)                       // nor does the next one: learning is over
         _ = render(engine, frames: 128)
-        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, edge) == 1)
-        #expect(fanfrnoch_get_controller(engine, edge) == 40)
+        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, split) == 1)
+        #expect(fanfrnoch_get_controller(engine, split) == 40)
 
-        fanfrnoch_learn(engine, edge)
+        fanfrnoch_learn(engine, split)
         fanfrnoch_learn(engine, -1)                                   // called off
         fanfrnoch_midi(engine, 0xB0, 42, 0, 0)
         _ = render(engine, frames: 128)
-        #expect(fanfrnoch_get_controller(engine, edge) == 40)
-        for param: Int32 in [Int32(fanfrnoch_lfo_amount(0, Self.index("vowel"))), fanfrnoch_num_params(), -2] {
+        #expect(fanfrnoch_get_controller(engine, split) == 40)
+        for param: Int32 in [Int32(fanfrnoch_lfo_amount(0, Self.index("stick"))), fanfrnoch_num_params(), -2] {
             fanfrnoch_learn(engine, param)                            // an amount, or no parameter: nobody learns
             #expect(fanfrnoch_learning(engine) == -1)
         }
@@ -731,68 +778,69 @@ struct EngineTests: EngineHarness {
     func reservedNotTaken() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        let edge = Self.index("edge")
-        let standard = fanfrnoch_standard_controller(edge)
+        let split = Self.index("split")
+        let standard = fanfrnoch_standard_controller(split)
         let reserved: [Int32] = [0, 1, 6, 32, 38, 64] + Array(96...101) + Array(120...127)
         for controller in reserved {
             #expect(fanfrnoch_controller_reserved(controller) == 1, "CC \(controller)")
-            fanfrnoch_set_controller(engine, edge, controller)
-            #expect(fanfrnoch_get_controller(engine, edge) == standard, "CC \(controller)")
+            fanfrnoch_set_controller(engine, split, controller)
+            #expect(fanfrnoch_get_controller(engine, split) == standard, "CC \(controller)")
         }
         #expect(fanfrnoch_controller_reserved(-1) == 1 && fanfrnoch_controller_reserved(128) == 1)
-        fanfrnoch_set_controller(engine, edge, 128)
-        #expect(fanfrnoch_get_controller(engine, edge) == standard)
+        fanfrnoch_set_controller(engine, split, 128)
+        #expect(fanfrnoch_get_controller(engine, split) == standard)
 
-        fanfrnoch_learn(engine, edge)
+        fanfrnoch_learn(engine, split)
         for controller in reserved where ![120, 121, 123].contains(controller) { fanfrnoch_midi(engine, 0xB0, controller, 100, 0) }
         _ = render(engine, frames: 128)
-        #expect(fanfrnoch_learning(engine) == edge)
-        #expect(fanfrnoch_get_controller(engine, edge) == standard)
+        #expect(fanfrnoch_learning(engine) == split)
+        #expect(fanfrnoch_get_controller(engine, split) == standard)
     }
 
     @Test("One controller serves one knob")
     func oneControllerOneKnob() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        let edge = Self.index("edge"), vowel = Self.index("vowel")
-        fanfrnoch_set_controller(engine, edge, 74)                    // Vowel's
-        #expect(fanfrnoch_get_controller(engine, edge) == 74)
-        #expect(fanfrnoch_get_controller(engine, vowel) == -1)
-        let vowelBefore = fanfrnoch_get_normalised(engine, Self.keyboard, vowel)
+        let split = Self.index("split"), stick = Self.index("stick")
+        fanfrnoch_set_controller(engine, split, 74)                   // Stick's
+        #expect(fanfrnoch_get_controller(engine, split) == 74)
+        #expect(fanfrnoch_get_controller(engine, stick) == -1)
+        let stickBefore = fanfrnoch_get_normalised(engine, Self.keyboard, stick)
         fanfrnoch_midi(engine, 0xB0, 74, 127, 0)
         _ = render(engine, frames: 128)
-        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, edge) == 1)
-        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, vowel) == vowelBefore)
+        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, split) == 1)
+        #expect(fanfrnoch_get_normalised(engine, Self.keyboard, stick) == stickBefore)
 
-        fanfrnoch_learn(engine, vowel)                                // learnt back
+        fanfrnoch_learn(engine, stick)                                // learnt back
         fanfrnoch_midi(engine, 0xB0, 74, 0, 0)
         _ = render(engine, frames: 128)
-        #expect(fanfrnoch_get_controller(engine, vowel) == 74 && fanfrnoch_get_controller(engine, edge) == -1)
+        #expect(fanfrnoch_get_controller(engine, stick) == 74 && fanfrnoch_get_controller(engine, split) == -1)
 
-        fanfrnoch_set_controller(engine, vowel, -1)
-        #expect(fanfrnoch_get_controller(engine, vowel) == -1)
+        fanfrnoch_set_controller(engine, stick, -1)
+        #expect(fanfrnoch_get_controller(engine, stick) == -1)
         fanfrnoch_reset_controllers(engine)
-        for knob: Int32 in 0..<34 {
+        for knob: Int32 in 0..<Self.numKnobs {
             #expect(fanfrnoch_get_controller(engine, knob) == fanfrnoch_standard_controller(knob))
         }
     }
 
     @Test("Controllers nobody listens to, a changed map and a learn called off leave the sound bit for bit")
     func sameSoundWithoutCC() {
-        let score = PrototypeScores.phrase(note: 36)
+        let events = PrototypeScores.events(PrototypeScores.render(named: "01b_fanfrnoch_default_groove"), rate: Self.rate)
         func play(_ engine: OpaquePointer, noise: Bool) -> [Float] {
             var out: [Float] = []
             var next = 0
             for block in 0..<Self.frames(3) / 128 {
                 let start = block * 128
-                while next < score.hits.count, Int(Double(score.hits[next].frame) / PrototypeScores.sampleRate * Self.rate) < start + 128 {
-                    let hit = score.hits[next]
-                    let offset = Int32(max(0, Int(Double(hit.frame) / PrototypeScores.sampleRate * Self.rate) - start))
-                    fanfrnoch_midi(engine, hit.chokeOnly ? 0x80 : 0x90, Int32(hit.note), Int32(hit.chokeOnly ? 0 : hit.velocity), offset)
+                while next < events.count, events[next].frame < start + 128 {
+                    let e = events[next]
+                    fanfrnoch_midi(engine, e.noteOff ? 0x80 : 0x90, Int32(e.note), Int32(e.velocity), Int32(e.frame - start))
                     next += 1
                 }
                 if noise {
-                    for controller: Int32 in [3, 40, 105, 119, 0, 6, 64, 127] { fanfrnoch_midi(engine, 0xB0, controller, Int32(block % 128), Int32(block % 128)) }
+                    for controller: Int32 in [3, 40, 116, 119, 0, 6, 64, 127] {
+                        fanfrnoch_midi(engine, 0xB0, controller, Int32(block % 128), Int32(block % 128))
+                    }
                 }
                 out += render(engine, frames: 128)
             }
@@ -802,10 +850,10 @@ struct EngineTests: EngineHarness {
         defer { fanfrnoch_destroy(quiet) }
         let busy = makeEngine()
         defer { fanfrnoch_destroy(busy) }
-        fanfrnoch_set_controller(busy, Self.index("edge"), 74)
-        fanfrnoch_set_controller(busy, Self.index("ring"), -1)
+        fanfrnoch_set_controller(busy, Self.index("split"), 74)
+        fanfrnoch_set_controller(busy, Self.index("release"), -1)
         fanfrnoch_reset_controllers(busy)
-        fanfrnoch_learn(busy, Self.index("ring"))
+        fanfrnoch_learn(busy, Self.index("release"))
         fanfrnoch_learn(busy, -1)
         let before = fanfrnoch_changes(busy)
         #expect(play(busy, noise: true) == play(quiet, noise: false))
@@ -816,7 +864,7 @@ struct EngineTests: EngineHarness {
     func controllersOutOfRange() {
         let engine = makeEngine()
         defer { fanfrnoch_destroy(engine) }
-        for param: Int32 in [-1, fanfrnoch_num_params(), Int32(fanfrnoch_vel_amount(Self.index("ring")))] {
+        for param: Int32 in [-1, fanfrnoch_num_params(), Int32(fanfrnoch_vel_amount(Self.index("release")))] {
             #expect(fanfrnoch_standard_controller(param) == -1)
             fanfrnoch_set_controller(engine, param, 40)
             #expect(fanfrnoch_get_controller(engine, param) == -1)

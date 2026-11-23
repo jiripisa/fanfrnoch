@@ -1,7 +1,8 @@
 // FanfrnochDSP.h - C interface to the Fanfrnoch sound engine.
 //
-// One engine = one jaw harp: sixteen voices that share the players' hands (the keyboard) or
-// the sixteen pads of a kit. The Audio Unit (C++) and the standalone app (Swift, through
+// One engine = a friction drum and its relatives: sixteen voices that the player's hands (the
+// keyboard) or the sixteen pads of a kit strike. A voice belongs to a drum; a stroke on a drum
+// that sounds continues its voice. The Audio Unit (C++) and the standalone app (Swift, through
 // FanfrnochCore) both drive it through these functions.
 //
 // Threads:
@@ -53,7 +54,8 @@ float       fanfrnoch_param_to_normalised(int index, float plain);
 // Text for a plain value, without the unit ("4.00", "-24.0", "Alternate", "+1"). Returns buffer.
 const char* fanfrnoch_param_display(int index, float plain, char* buffer, int bufferSize);
 
-// The sections the knobs are shown in ("Reed", "Stroke", "Mouth", "Breath", "Master") and the
+// The sections the knobs are shown in ("Stroke", "Hands", "Pitch", "Friction", "Body", "Noise",
+// "Master") and the
 // knobs of each in the order they are shown: the app's panels and the Audio Unit's parameter
 // groups. The amounts below are in no section.
 int         fanfrnoch_num_sections(void);
@@ -79,8 +81,9 @@ void          fanfrnoch_destroy(FanfrnochEngine*);
 // Sets the host sample rate and then resets the engine as fanfrnoch_reset() does. A rate that is not
 // positive and finite is ignored, and nothing is reset.
 void          fanfrnoch_prepare(FanfrnochEngine*, double sampleRate);
-// Silences every voice, puts the wheels at rest and forgets the last note. The knob sets, the
-// pads (notes, groups) and the mode stay as they are.
+// Silences every voice, puts the wheels at rest, forgets the last note and starts every drum's
+// alternation again from its first hand. The knob sets, the pads (notes, groups) and the mode
+// stay as they are.
 void          fanfrnoch_reset(FanfrnochEngine*);
 // The same reset, done by the audio thread at the start of its next fanfrnoch_process() call.
 void          fanfrnoch_request_reset(FanfrnochEngine*);
@@ -101,16 +104,18 @@ int   fanfrnoch_get_program(const FanfrnochEngine*, int set);
 // state whose knob values come from elsewhere. A bad set or program is ignored.
 void  fanfrnoch_set_program_index(FanfrnochEngine*, int set, int program);
 
-// The mode: the keyboard plays the keyboard set at the pitch of each key; the pads play their
-// own sets at the pitch of each pad, hit by notes 36-51 (other notes are ignored). A voice
-// already ringing when the mode changes rings on as it was.
+// The mode: the keyboard plays the keyboard set at the pitch of each key, as one drum (Drum One)
+// or a drum per note (Drum Many); the pads play their own sets at the pitch of each pad, hit by
+// notes 36-51 (other notes are ignored). A voice already sounding when the mode changes sounds
+// on as it was.
 void  fanfrnoch_set_mode(FanfrnochEngine*, int mode);
 int   fanfrnoch_get_mode(const FanfrnochEngine*);
 
-// Pads: each has a pitch (a MIDI note) and a mute group. A hit on a pad chokes its own pad's
-// sounding voices and those of every pad in its group (0 = Off: no group). Like the pitch, the
-// group belongs to the pad, not to its set. A pad's voice copies the pad's set at the hit and
-// does not follow later changes to it, nor the wheels.
+// Pads: each has a pitch (a MIDI note) and a group. The pads of one group are one drum: a hit
+// continues the group's sounding voice with the new pad's set and pitch. A pad whose group is
+// 0 (Off) is a drum of its own, which a re-hit continues. Like the pitch, the group belongs to
+// the pad, not to its set. A pad's voice copies the pad's set at the hit and does not follow
+// later changes to it, nor the wheels.
 int   fanfrnoch_pad_note(const FanfrnochEngine*, int pad);
 void  fanfrnoch_set_pad_note(FanfrnochEngine*, int pad, int note);
 int   fanfrnoch_pad_group(const FanfrnochEngine*, int pad);
@@ -128,7 +133,7 @@ void  fanfrnoch_send_to_pad(FanfrnochEngine*, int pad);
 // with relaxed atomics like fanfrnoch_send_to_pad: a pad hit landing mid-load freezes a mix of old and
 // new values for that one hit.
 void  fanfrnoch_load_default_kit(FanfrnochEngine*);
-int   fanfrnoch_sounding_voices(const FanfrnochEngine*);    // voices playing and not being choked
+int   fanfrnoch_sounding_voices(const FanfrnochEngine*);    // voices playing and not being faded out
 
 // MIDI from any thread; played in the next fanfrnoch_process() call, sampleOffset frames into it
 // (0 = at its start).

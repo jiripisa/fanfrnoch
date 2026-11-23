@@ -7,7 +7,7 @@ public enum PadLabel {
         return number < 10 ? "0\(number)" : "\(number)"
     }
 
-    /// "05 · Khomus": the pad's number and name, as the inspector and Send to pad name it.
+    /// "05 · Zambomba": the pad's number and name, as the inspector and Send to pad name it.
     public static func title(_ pad: Int, name: String) -> String {
         "\(number(pad)) · \(name)"
     }

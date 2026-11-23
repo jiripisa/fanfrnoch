@@ -1,7 +1,7 @@
 import SwiftUI
 import FanfrnochCore
 
-/// One group of controls (Reed, Stroke, Mouth, Breath, Master) on a glass
+/// One group of controls (Stroke, Hands, Pitch, Friction, Body, Noise, Master) on a glass
 /// panel: its title, then its knobs and switches where `SectionLayout` puts
 /// them.
 struct SectionView: View {

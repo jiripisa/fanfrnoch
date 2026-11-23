@@ -1,21 +1,26 @@
 // FanfrnochEngine.cpp - the Fanfrnoch sound engine and its C interface.
 //
-// One engine is a pool of voices (Voice.h), each a plucked reed, and seventeen knob sets: the
-// keyboard's and one per pad. At most 16 voices sound at once: a hit that would be the 17th
-// steals the quietest, which fades out in 3 ms.
-//   * In keyboard mode every note plays the keyboard set at its own pitch, one voice per note
-//     number: the same note again chokes its own ring and plucks anew. The voice follows the
-//     keyboard set while it rings.
-//   * In pad mode notes 36-51 hit pads 1-16. A pad hit is a key press frozen: its voice copies
-//     the pad's set at the hit and sounds at the pad's note. It chokes the voices of its own pad
-//     and, unless its group is Off, of every pad in its group.
+// One engine is a pool of voices (Voice.h), each one drum's head under the hand, and seventeen
+// knob sets: the keyboard's and one per pad. A voice belongs to a drum, and a stroke on a drum
+// that sounds continues that drum's voice: its phase, its envelope and its alternation run on,
+// so strokes on one drum run into each other with a dip, not a click, and never pile up. At most
+// 16 voices sound at once: a stroke on a silent drum that would be the 17th steals the quietest,
+// which fades out in 3 ms.
+//   * In keyboard mode every note strikes the keyboard set at its own pitch. With Drum = One all
+//     notes are one drum; with Drum = Many every note number is a drum of its own. The voice
+//     follows the keyboard set while it sounds.
+//   * In pad mode notes 36-51 hit pads 1-16. A pad hit is a key press frozen: its voice takes the
+//     pad's set at the hit and sounds at the pad's note. The pads of one group are one drum: a hit
+//     continues the group's voice with the new pad's set and pitch. A pad whose group is Off is
+//     a drum of its own.
 //
-//   voices -> sum (L, R) -> DC blocker -> kLevel -> [half-band decimator] -> limiter -> out
+//   voices (each with its DC blocker) -> sum (L, R) -> kLevel -> [half-band decimator] -> limiter -> out
 //
 // Below 88.2 kHz everything up to kLevel runs at twice the host rate (the internal rate), and
-// a half-band filter (HalfBand.h) decimates it: the reed's bright bursts would otherwise fold
-// back into the band. From 88.2 kHz up the internal rate is the host's and there is no filter.
-// The limiter always runs at the host rate.
+// a half-band filter (HalfBand.h) decimates it: the slips' sharp corners would otherwise fold
+// back into the band (at Stick 0.95 and 860 Hz the worst product is -51 dB re the fundamental at
+// 44.1 kHz and -57 dB at 48 kHz; with the 2x stage below -76 dB). From 88.2 kHz up the internal
+// rate is the host's and there is no filter. The limiter always runs at the host rate.
 //
 // What a voice plays is its view (viewFor): the knob set, moved by the voice's two LFOs, the
 // hit's velocity and, for a keyboard voice, the wheels.
@@ -66,7 +71,7 @@ constexpr Moves makeMoves()
     Moves m{};
     for (int i = 0; i < kNumKnobs; ++i)
     {
-        bool moves = i == kClose || i == kBreath;      // the mod wheel and the aftertouch
+        bool moves = i == kRub || i == kStick;         // the mod wheel and the aftertouch
         for (int k = 0; k < kNumLfos; ++k) { m.lfo[i][k] = amountOf(k, i); moves = moves || m.lfo[i][k] >= 0; }
         m.vel[i] = velAmountOf(i);
         moves = moves || m.vel[i] >= 0;
@@ -85,6 +90,11 @@ int  padSet(int pad) { return pad + 1; }
 
 // The note Send to pad gives a pad when no note has been played: C2.
 constexpr int kSendNoteIfNone = 36;
+
+// How far the wheels move their knobs at the top, in parts of the knob's travel: the mod wheel
+// adds 20 dB of Rub (of its 40), aftertouch 0.07 of Stick (of its 0.45).
+constexpr float kRubPerModWheel = 0.5f;
+constexpr float kStickPerPressure = 0.07f / 0.45f;
 
 // Didgeridoo's tanh: a Padé approximant, exact enough for a limiter and cheap.
 inline float fastTanh(float x)
@@ -224,7 +234,6 @@ struct FanfrnochEngine
         if (!(sampleRate > 0.0) || !std::isfinite(sampleRate)) return;
         oversampling_ = sampleRate < kOversampleBelow ? 2 : 1;
         internalRate_ = sampleRate * oversampling_;
-        dcCoeff_ = (float)(1.0 - 48.0 / internalRate_);    // 0.9995 at 96 kHz, the prototype's
         decimL_.design();
         decimR_.design();
         latency_.store(oversampling_ == 2 ? HalfBand::kLatency : 0, std::memory_order_relaxed);
@@ -234,11 +243,9 @@ struct FanfrnochEngine
     void reset()
     {
         for (Voice& v : voices_) v = Voice();
-        rng_.seed(12345);
-        for (int& d : lastDir_) d = -1;
-        for (int& d : padDir_) d = -1;
+        nextSeed_ = 1;
+        for (int& n : strokes_) n = 0;
         lastNote_.store(-1, std::memory_order_relaxed);
-        dcL_ = dcR_ = Dc{};
         decimL_.reset();
         decimR_.reset();
         for (int k = 0; k < kNumLfos; ++k) freeLfo_[k].restart(kFreeSeed + (uint32_t)k);
@@ -285,16 +292,17 @@ private:
     static_assert(kNumSlots > FANFRNOCH_MAX_VOICES, "room for the voices being choked");
     static constexpr int kMaxEvents = 256;
 
-    // A stolen voice falls 40 dB in this long.
+    // A stolen voice falls 40 dB in this long; All Sound Off and All Notes Off take this long.
     static constexpr float kStealMs = 3.0f;
+    static constexpr float kAllOffMs = 10.0f;
 
     // Below this host rate the voices run at twice it.
     static constexpr double kOversampleBelow = 88200.0;
 
-    // The output scale. The default hit at full velocity (C2, velocity 127, program Fanfrnoch, at
-    // 96 kHz) peaks at 2.494 in the prototype's units, so 0.2 puts it at 0.499: -6.0 dBFS, under
-    // the limiter's 0.6.
-    static constexpr float kLevel = 0.2f;
+    // The output scale. The default stroke at full velocity (B2, velocity 127, program Fanfrnoch)
+    // peaks at 1.56 in the prototype's units: the median of 40 strokes at 48 kHz, which Vary and
+    // the noise spread from 1.14 to 2.30. 0.32 puts it at 0.50, -6.1 dBFS, under the limiter's 0.6.
+    static constexpr float kLevel = 0.32f;
 
     // The keyboard set, normalised and as plain values, read once per block.
     void readKeyboardSet()
@@ -309,7 +317,7 @@ private:
     // Where every knob of `v` stands now. A knob a source moves stands at
     //   knob + sum of (LFO amount * LFO value) - VEL amount * (1 - velocity)  (+ a wheel),
     // in parts of its travel and no further than its ends; Volume's VEL amount is a gain
-    // instead, and the pitch bend multiplies the Vowel. The one place that adds modulation:
+    // instead, and the pitch bend is a pitch in semitones. The one place that adds modulation:
     // with every amount and wheel at rest, the view is the knob set itself, value for value.
     void viewFor(const Voice& v, KnobView& out) const
     {
@@ -321,7 +329,7 @@ private:
         float lfoValue[kNumLfos];
         for (int k = 0; k < kNumLfos; ++k)
             lfoValue[k] = v.lfo[k].value(std::clamp((int)std::lround(out.v[kLfo1Shape + 2 * k]), 0, (int)kNumLfoShapes - 1));
-        const float soft = 1.0f - v.vel;
+        const float soft = 1.0f - (float)v.vel;
 
         for (int n = 0; n < kMoves.numKnobs; ++n)
         {
@@ -338,14 +346,14 @@ private:
             if (velAmount != 0.0f) { position -= velAmount * soft; moved = true; }
             if (keyboard)
             {
-                if (i == kClose && modWheel_ != 0.0f) { position += modWheel_; moved = true; }
-                if (i == kBreath && pressure_ != 0.0f) { position += 0.5f * pressure_; moved = true; }
+                if (i == kRub && modWheel_ != 0.0f) { position += kRubPerModWheel * modWheel_; moved = true; }
+                if (i == kStick && pressure_ != 0.0f) { position += kStickPerPressure * pressure_; moved = true; }
             }
             if (moved) out.v[i] = param(i).toPlain(std::clamp(position, 0.0f, 1.0f));
         }
 
         out.velocityGain = std::max(0.0f, 1.0f - out.v[velAmountOf(kVolume)] / 100.0f * soft);
-        if (keyboard && bend_ != 0.0f) out.v[kVowel] *= std::pow(2.0f, bend_ * out.v[kBendVowel] / 12.0f);
+        out.bend = keyboard ? bend_ * (bend_ >= 0.0f ? out.v[kBendUp] : out.v[kBendDown]) : 0.0f;
     }
 
     // A hit's LFOs: restarted (Hit), or where the engine's free-running ones stand (Free).
@@ -374,7 +382,7 @@ private:
             else if (validPad(ev.data1 - FANFRNOCH_FIRST_PAD_NOTE)) padHit(ev.data1 - FANFRNOCH_FIRST_PAD_NOTE, ev.data1, velocity);
         }
         else if (ev.isNoteOff()) noteOff(ev.data1);
-        else if (ev.isAllNotesOff()) { for (Voice& v : voices_) if (v.active) v.choke(v.knob(kDamp)); }
+        else if (ev.isAllNotesOff()) { for (Voice& v : voices_) if (v.active) v.choke(kAllOffMs); }
         else if (ev.isController() && ev.data1 == 121) bend_ = modWheel_ = pressure_ = 0.0f;   // Reset All Controllers
         else if (ev.isController() && ev.data1 == 1) modWheel_ = ev.data2 / 127.0f;
         else if (ev.isController() && !controllerReserved(ev.data1)) controllerMoved(ev.data1, ev.data2);
@@ -413,9 +421,8 @@ private:
         if (changed) changes_.fetch_add(1, std::memory_order_release);
     }
 
-    // Before a hit: if FANFRNOCH_MAX_VOICES voices sound, the quietest of them is choked, in
-    // kStealMs. The hit's own chokes (its note, its pad, its group) have been done by then, so a
-    // voice is stolen only when they left no room.
+    // Before a stroke on a silent drum: if FANFRNOCH_MAX_VOICES voices sound, the quietest of
+    // them is choked, in kStealMs. A stroke on a drum that sounds takes no room.
     void makeRoom()
     {
         int sounding = 0;
@@ -431,8 +438,9 @@ private:
         if (sounding >= FANFRNOCH_MAX_VOICES) quietest->choke(kStealMs);
     }
 
-    // The slot a hit takes: a free one, or else the quietest of those being choked, which is cut.
-    // After makeRoom at most FANFRNOCH_MAX_VOICES - 1 voices sound, so one of the two is there.
+    // The slot a new voice takes: a free one, or else the quietest of those being choked, which
+    // is cut. After makeRoom at most FANFRNOCH_MAX_VOICES - 1 voices sound, so one of the two is
+    // there.
     Voice& freeSlot()
     {
         Voice* quietest = nullptr;
@@ -447,63 +455,62 @@ private:
         return quietest ? *quietest : voices_[0];
     }
 
-    // The direction of a stroke: Out, In, or the other way from the last stroke `last` made.
-    static float direction(int stroke, int& last)
+    // The voice a drum sounds with, or a new one. A voice being choked no longer belongs to its
+    // drum: a stroke on it starts a new voice while the old one fades.
+    Voice& voiceFor(int drum)
     {
-        if (stroke == kStrokeIn) return -1.0f;
-        if (stroke != kStrokeAlternate) return 1.0f;
-        last = -last;
-        return (float)last;
-    }
-
-    // What is taken at the hit is taken from the hit's view: its velocity moves Ring and Tune.
-    void pluck(Voice& v, const float* plain, float dir)
-    {
-        startLfos(v, (int)std::lround(plain[kLfoStart]));
-        viewFor(v, v.view);
-        v.start(dir, rng_, internalRate_);
-    }
-
-    void noteOn(int note, float velocity)
-    {
-        // One voice per note number: the same note again chokes its own ring, each with its Damp.
         for (Voice& v : voices_)
-            if (v.active && v.origin.kind == kOriginKey && v.origin.note == note) v.choke(v.knob(kDamp));
+            if (v.active && !v.choking && v.drum == drum) return v;
         makeRoom();
         Voice& slot = freeSlot();
-        const float dir = direction((int)std::lround(keyView_.v[kStroke]), lastDir_[note]);
-        slot.take(Origin{ kOriginKey, note, -1, 0 }, note, velocity);
-        pluck(slot, keyView_.v, dir);
+        slot.begin(drum, nextSeed_++, internalRate_);
+        return slot;
+    }
+
+    // A stroke on `drum`: what is taken at the stroke is taken from the stroke's view, and every
+    // second stroke of the drum is the other hand's.
+    void strike(int drum, Voice& v, const Origin& origin, int pitch, float velocity, const float* plain)
+    {
+        v.origin = origin;
+        v.note = pitch;
+        v.vel = velocity;
+        startLfos(v, (int)std::lround(plain[kLfoStart]));
+        viewFor(v, v.view);
+        v.strike(strokes_[drum]++ % 2 == 1);
+    }
+
+    // A key strikes the keyboard's one drum (Drum One) or its own note's (Drum Many).
+    void noteOn(int note, float velocity)
+    {
+        const int drum = (int)std::lround(keyView_.v[kDrum]) == kDrumMany ? kDrumFirstNote + note : kDrumKeyboard;
+        Voice& v = voiceFor(drum);
+        strike(drum, v, Origin{ kOriginKey, note, -1, 0 }, note, velocity, keyView_.v);
         lastNote_.store(note, std::memory_order_relaxed);
     }
 
-    // A pad hit chokes its own pad's voices and, unless its group is Off, every pad voice of its
-    // group, each with its Damp. Stroke Alternate alternates per group, or per pad with no group.
+    // A pad hit strikes its group's drum, or the pad's own with Group Off, with the pad's set
+    // frozen at the hit and at the pad's note.
     void padHit(int pad, int note, float velocity)
     {
         const int group = padGroup(pad);
-        for (Voice& v : voices_)
-            if (v.active && v.origin.kind == kOriginPad && (v.origin.pad == pad || (group != 0 && v.origin.group == group)))
-                v.choke(v.knob(kDamp));
-        makeRoom();
-        Voice& slot = freeSlot();
+        const int drum = group != 0 ? kDrumFirstGroup + group - 1 : kDrumFirstPad + pad;
+        Voice& v = voiceFor(drum);
         padHits_[pad].fetch_add(1, std::memory_order_relaxed);
-        slot.take(Origin{ kOriginPad, note, pad, group }, padNote(pad), velocity);
         const int set = padSet(pad);
         for (int i = 0; i < kNumParams; ++i)        // the pad's set, frozen at the hit
         {
-            slot.setAtHit[i] = getNormalised(set, i);
-            slot.plainAtHit[i] = param(i).toPlain(slot.setAtHit[i]);
+            v.setAtHit[i] = getNormalised(set, i);
+            v.plainAtHit[i] = param(i).toPlain(v.setAtHit[i]);
         }
-        int& last = group != 0 ? padDir_[group - 1] : padDir_[FANFRNOCH_NUM_GROUPS + pad];
-        pluck(slot, slot.plainAtHit, direction((int)std::lround(slot.plainAtHit[kStroke]), last));
+        strike(drum, v, Origin{ kOriginPad, note, pad, group }, padNote(pad), velocity, v.plainAtHit);
     }
 
-    // A released key stops the voices it started whose Key Up is Damp: a key's, or a pad's.
+    // A released key ends the stroke it made, a key's or a pad's: with Key Up = Stop the hand
+    // stops there.
     void noteOff(int note)
     {
         for (Voice& v : voices_)
-            if (v.active && v.origin.note == note && (int)std::lround(v.knob(kKeyUp)) == kKeyUpDamp) v.choke(v.knob(kDamp));
+            if (v.active && !v.choking && v.origin.note == note) v.release();
     }
 
     // The peaks are left alone up to 0.6 and bent towards 1 above it (Didgeridoo's limiter).
@@ -515,20 +522,11 @@ private:
         return y < 0.0f ? -bent : bent;
     }
 
-    struct Dc { float x1 = 0, y1 = 0; };
+    // The bus at the internal rate: the level.
+    static float bus(float x) { return x * kLevel; }
 
-    // One channel of the bus at the internal rate: DC blocker and level. The blocker's memory is
-    // flushed to zero when it is too small to hear, so that silence is exact and no denormal
-    // tail lingers.
-    float bus(Dc& dc, float x) const
-    {
-        const float y = x - dc.x1 + dcCoeff_ * dc.y1;
-        dc.x1 = x;
-        dc.y1 = std::fabs(y) < 1e-20f ? 0.0f : y;
-        return y * kLevel;
-    }
-
-    // The bus at the host rate: the limiter, and the same flush.
+    // The bus at the host rate: the limiter. Its output is flushed to zero when it is too small
+    // to hear, so that silence is exact and no denormal tail lingers.
     static float limited(float y)
     {
         const float out = limit(y);
@@ -547,7 +545,7 @@ private:
             const StereoSample s = v.process();
             l += s.l; r += s.r;
         }
-        return { bus(dcL_, l), bus(dcR_, r) };
+        return { bus(l), bus(r) };
     }
 
     // Host frames [from, to): one internal sample each, or two decimated into one.
@@ -588,17 +586,14 @@ private:
     // --- audio thread ----------------------------------------------------------------------
     double internalRate_ = 88200.0;
     int    oversampling_ = 2;                                 // internal samples per host frame
-    float  dcCoeff_ = 0.9995f;
     float  keyNorm_[kNumParams] = {};
     KnobView keyView_{};
     Lfo    freeLfo_[kNumLfos];
     int    freeTick_ = 0;
     float  bend_ = 0.0f, modWheel_ = 0.0f, pressure_ = 0.0f;   // -1..1, 0..1, 0..1
     Voice  voices_[kNumSlots];
-    std::mt19937 rng_{12345};
-    int    lastDir_[128];                                     // per keyboard note
-    int    padDir_[FANFRNOCH_NUM_GROUPS + FANFRNOCH_NUM_PADS];       // per group 1-16, then per pad with no group
-    Dc     dcL_, dcR_;
+    uint32_t nextSeed_ = 1;                                   // the next new voice's generator: 1, 2, ... since the reset
+    int    strokes_[kNumDrums] = {};                           // strokes per drum since the reset
     HalfBand decimL_, decimR_;
 };
 
@@ -632,6 +627,7 @@ const char* fanfrnoch_param_display(int index, float plain, char* buffer, int bu
     if (!validParam(index)) return buffer;
     const Param& p = param(index);
     if (index == kOctave && plain >= 0.5f) std::snprintf(buffer, (size_t)bufferSize, "+%d", (int)std::lround(plain));
+    else if (p.offAtMin && plain <= p.min) std::snprintf(buffer, (size_t)bufferSize, "Off");
     else if (p.kind == FANFRNOCH_KIND_CHOICE) std::snprintf(buffer, (size_t)bufferSize, "%s", choiceName(index, (int)std::lround(plain)));
     else if (p.kind == FANFRNOCH_KIND_INT) std::snprintf(buffer, (size_t)bufferSize, "%d", (int)std::lround(plain));
     else

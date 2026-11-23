@@ -64,46 +64,46 @@ struct KnobEditTests {
         var lastErrorTime: ContinuousClock.Instant? { nil }
     }
 
-    private let ring = Parameters.named("ring")!
-    private let amount = Parameters.named("lfo1vowel")!
+    private let release = Parameters.named("release")!
+    private let amount = Parameters.named("lfo1stick")!
 
     @Test("A drag begins one edit and ends it, in the set it began in")
     func beginAndEndPair() {
         let model = Recorder()
         model.mode = .pads
         model.selectedPad = 3
-        var edit = KnobEdit.begin(ring, in: model.shownSet, isAmount: false, model: model)
+        var edit = KnobEdit.begin(release, in: model.shownSet, isAmount: false, model: model)
         edit.move(to: 10, fine: false, model: model)
         model.selectedPad = 7                     // MIDI selects another pad mid-drag
         edit.move(to: 20, fine: false, model: model)
         edit.end(model: model)
-        #expect(model.calls == [.begin("ring", .pad(3)), .end("ring", .pad(3))])
+        #expect(model.calls == [.begin("release", .pad(3)), .end("release", .pad(3))])
     }
 
     @Test("Up turns the knob up; 200 points turn it end to end, and no further")
     func travel() {
         let model = Recorder()
-        var edit = KnobEdit.begin(ring, in: .keyboard, isAmount: false, model: model)
+        var edit = KnobEdit.begin(release, in: .keyboard, isAmount: false, model: model)
         edit.move(to: -50, fine: false, model: model)
-        #expect(model.positions["ring"] == 0.75)
+        #expect(model.positions["release"] == 0.75)
         edit.move(to: -500, fine: false, model: model)
-        #expect(model.positions["ring"] == 1)
+        #expect(model.positions["release"] == 1)
         edit.move(to: -450, fine: false, model: model)
-        #expect(model.positions["ring"] == 0.75)
+        #expect(model.positions["release"] == 0.75)
     }
 
     @Test("Shift pressed halfway makes the rest of the drag finer, without a jump")
     func shiftHalfway() {
         let model = Recorder()
-        var edit = KnobEdit.begin(ring, in: .keyboard, isAmount: false, model: model)
+        var edit = KnobEdit.begin(release, in: .keyboard, isAmount: false, model: model)
         edit.move(to: -50, fine: false, model: model)
-        #expect(model.positions["ring"] == 0.75)
+        #expect(model.positions["release"] == 0.75)
         edit.move(to: -50, fine: true, model: model)
-        #expect(model.positions["ring"] == 0.75)
+        #expect(model.positions["release"] == 0.75)
         edit.move(to: -100, fine: true, model: model)
-        #expect(abs(model.positions["ring"]! - 0.775) < 1e-12)
+        #expect(abs(model.positions["release"]! - 0.775) < 1e-12)
         edit.move(to: -100, fine: false, model: model)
-        #expect(abs(model.positions["ring"]! - 0.775) < 1e-12)
+        #expect(abs(model.positions["release"]! - 0.775) < 1e-12)
     }
 
     @Test("An amount close to nothing is nothing, and the drag goes on past it")
@@ -112,16 +112,16 @@ struct KnobEditTests {
         var edit = KnobEdit.begin(amount, in: .keyboard, isAmount: true, model: model)   // at 0 %
         edit.move(to: -1, fine: false, model: model)                                      // +1 % ...
         edit.move(to: -0.5, fine: false, model: model)                                    // ... back to +0.5 %
-        #expect(model.positions["lfo1vowel"] == Double(amount.normalised(0)))
+        #expect(model.positions["lfo1stick"] == Double(amount.normalised(0)))
         edit.move(to: -3, fine: false, model: model)                                      // +3 %
-        #expect(abs(Double(amount.plain(Float(model.positions["lfo1vowel"]!))) - 3) < 1e-3)
+        #expect(abs(Double(amount.plain(Float(model.positions["lfo1stick"]!))) - 3) < 1e-3)
     }
 
     @Test("A double click puts the value back as an edit of its own")
     func resetIsAnEdit() {
         let model = Recorder()
-        KnobEdit.reset(ring, in: .pad(2), model: model)
-        #expect(model.calls == [.begin("ring", .pad(2)), .reset("ring", .pad(2)), .end("ring", .pad(2))])
+        KnobEdit.reset(release, in: .pad(2), model: model)
+        #expect(model.calls == [.begin("release", .pad(2)), .reset("release", .pad(2)), .end("release", .pad(2))])
     }
 
     // MARK: VoiceOver
@@ -129,15 +129,15 @@ struct KnobEditTests {
     @Test("VoiceOver turns a knob a twentieth of its travel a step, as an edit of its own, and no further than its end")
     func adjustContinuous() {
         let model = Recorder()
-        KnobEdit.adjust(ring, in: .pad(1), isAmount: false, up: true, model: model)
-        #expect(abs(model.positions["ring"]! - 0.55) < 1e-12)
-        #expect(model.calls == [.begin("ring", .pad(1)), .end("ring", .pad(1))])
-        model.positions["ring"] = 0.98
-        KnobEdit.adjust(ring, in: .keyboard, isAmount: false, up: true, model: model)
-        #expect(model.positions["ring"] == 1)
-        model.positions["ring"] = 0.01
-        KnobEdit.adjust(ring, in: .keyboard, isAmount: false, up: false, model: model)
-        #expect(model.positions["ring"] == 0)
+        KnobEdit.adjust(release, in: .pad(1), isAmount: false, up: true, model: model)
+        #expect(abs(model.positions["release"]! - 0.55) < 1e-12)
+        #expect(model.calls == [.begin("release", .pad(1)), .end("release", .pad(1))])
+        model.positions["release"] = 0.98
+        KnobEdit.adjust(release, in: .keyboard, isAmount: false, up: true, model: model)
+        #expect(model.positions["release"] == 1)
+        model.positions["release"] = 0.01
+        KnobEdit.adjust(release, in: .keyboard, isAmount: false, up: false, model: model)
+        #expect(model.positions["release"] == 0)
     }
 
     @Test("A knob of whole steps moves one step")
@@ -155,40 +155,40 @@ struct KnobEditTests {
     @Test("An amount stepped by VoiceOver snaps to nothing near nothing, as a drag does")
     func adjustAmount() {
         let model = Recorder()
-        model.positions["lfo1vowel"] = Double(amount.normalised(0)) - 0.051     // a step below nothing, by a hair
+        model.positions["lfo1stick"] = Double(amount.normalised(0)) - 0.051     // a step below nothing, by a hair
         KnobEdit.adjust(amount, in: .keyboard, isAmount: true, up: true, model: model)
-        #expect(model.positions["lfo1vowel"] == Double(amount.normalised(0)))
+        #expect(model.positions["lfo1stick"] == Double(amount.normalised(0)))
     }
 
     // MARK: MIDI mode
 
     @Test("A double click in MIDI mode gives the standard controller back and calls off the control's own listening")
     func doubleClickInMIDIMode() throws {
-        let vowel = try #require(Parameters.named("vowel"))
+        let stick = try #require(Parameters.named("stick"))
         let model = Recorder()
-        model.learning = vowel                                    // the first click made it listen
-        ControllerHandling.backToStandard(vowel, model: model)
-        #expect(model.calls == [.learn(nil), .controller("vowel", 74)])
+        model.learning = stick                                    // the first click made it listen
+        ControllerHandling.backToStandard(stick, model: model)
+        #expect(model.calls == [.learn(nil), .controller("stick", 74)])
         #expect(model.learning == nil)
 
         model.calls = []
-        model.learning = ring                                     // another control listens: it goes on
-        ControllerHandling.backToStandard(vowel, model: model)
-        #expect(model.calls == [.controller("vowel", 74)])
-        #expect(model.learning == ring)
+        model.learning = release                                     // another control listens: it goes on
+        ControllerHandling.backToStandard(stick, model: model)
+        #expect(model.calls == [.controller("stick", 74)])
+        #expect(model.learning == release)
     }
 
     @Test("In MIDI mode the keyboard's controls stay in play and a pad's step back; nothing sets an amount")
     func controllerMode() throws {
-        let vowel = try #require(Parameters.named("vowel"))
-        let curve = try #require(Parameters.named("curve"))
-        #expect(KnobEditing.controller.amount(of: vowel) == nil)
-        #expect(!KnobEditing.controller.stepsBack(vowel, in: .keyboard))
-        #expect(!KnobEditing.controller.stepsBack(curve, in: .keyboard))
-        #expect(KnobEditing.controller.stepsBack(vowel, in: .pad(2)))
+        let stick = try #require(Parameters.named("stick"))
+        let keyup = try #require(Parameters.named("keyup"))
+        #expect(KnobEditing.controller.amount(of: stick) == nil)
+        #expect(!KnobEditing.controller.stepsBack(stick, in: .keyboard))
+        #expect(!KnobEditing.controller.stepsBack(keyup, in: .keyboard))
+        #expect(KnobEditing.controller.stepsBack(stick, in: .pad(2)))
         // The other modes are as they were, in either set.
-        #expect(!KnobEditing.value.stepsBack(vowel, in: .pad(2)))
-        #expect(!KnobEditing.amount(lfo: 0).stepsBack(vowel, in: .keyboard))
-        #expect(KnobEditing.velocity.stepsBack(curve, in: .keyboard))
+        #expect(!KnobEditing.value.stepsBack(stick, in: .pad(2)))
+        #expect(!KnobEditing.amount(lfo: 0).stepsBack(stick, in: .keyboard))
+        #expect(KnobEditing.velocity.stepsBack(keyup, in: .keyboard))
     }
 }

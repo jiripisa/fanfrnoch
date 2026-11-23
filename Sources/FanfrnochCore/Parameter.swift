@@ -13,9 +13,9 @@ public struct Parameter: Identifiable, Sendable, Equatable {
     /// Position in the engine's table. Permanent: saved state relies on `identifier`,
     /// hosts rely on the index.
     public let index: Int
-    /// Stable name used in saved state ("vowel", "velring").
+    /// Stable name used in saved state ("stick", "velattack").
     public let identifier: String
-    /// What the user sees ("Vowel", "VEL>Ring").
+    /// What the user sees ("Stick", "VEL>Attack").
     public let name: String
     /// "s", "Hz", "ms", "dB", "%", "st", "ct" or "".
     public let unit: String
@@ -84,7 +84,7 @@ public enum Parameters {
     }
 }
 
-/// A group of controls: Reed, Stroke, Mouth, Breath, Master.
+/// A group of controls: Stroke, Hands, Pitch, Friction, Body, Noise, Master.
 /// The groups and the order of their parameters come from the sound engine,
 /// which also gives them to the Audio Unit.
 public struct ParameterSection: Identifiable, Sendable {
@@ -100,7 +100,7 @@ public struct ParameterSection: Identifiable, Sendable {
     }
 }
 
-/// The built-in programs (factory presets): other jaw harps.
+/// The built-in programs (factory presets): the friction drum and its relatives.
 public enum Programs {
     public static let names: [String] = (0..<Int(fanfrnoch_num_programs())).map {
         String(cString: fanfrnoch_program_name(Int32($0)))

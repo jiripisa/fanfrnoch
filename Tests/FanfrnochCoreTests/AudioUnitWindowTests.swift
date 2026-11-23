@@ -67,42 +67,42 @@ struct AudioUnitWindowTests {
     func knobSetsParameter() throws {
         let instrument = try Instrument()
         let model = try model(of: instrument)
-        let ring = try #require(Parameters.named("ring"))
-        let stroke = try #require(Parameters.named("stroke"))
+        let release = try #require(Parameters.named("release"))
+        let keyup = try #require(Parameters.named("keyup"))
 
-        model.setPosition(1, of: ring, in: .keyboard)
-        let top = ring.plain(1)                                   // 15 s, to a few ulps
-        #expect(abs(top - ring.range.upperBound) < 1e-4)
-        #expect(try instrument.parameter(ring.index) == top)
-        #expect(abs(model.position(of: ring, in: .keyboard) - 1) < 1e-6)
+        model.setPosition(1, of: release, in: .keyboard)
+        let top = release.plain(1)                                   // 3 s, to a few ulps
+        #expect(abs(top - release.range.upperBound) < 1e-4)
+        #expect(try instrument.parameter(release.index) == top)
+        #expect(abs(model.position(of: release, in: .keyboard) - 1) < 1e-6)
 
-        model.setPosition(0.45, of: stroke, in: .keyboard)        // a choice snaps to its step
-        let value = try instrument.parameter(stroke.index)
+        model.setPosition(0.45, of: keyup, in: .keyboard)        // a choice snaps to its step
+        let value = try instrument.parameter(keyup.index)
         #expect(value == value.rounded())
-        #expect(model.value(of: stroke, in: .keyboard) == value)
+        #expect(model.value(of: keyup, in: .keyboard) == value)
 
         // The engine gets it at the next render, as from a host.
         let engine = try instrument.engine()
         _ = try instrument.render()
-        #expect(abs(fanfrnoch_get_plain(engine, Int32(FANFRNOCH_KEYBOARD_SET), Int32(ring.index)) - top) < 1e-4)
+        #expect(abs(fanfrnoch_get_plain(engine, Int32(FANFRNOCH_KEYBOARD_SET), Int32(release.index)) - top) < 1e-4)
     }
 
     @Test("A parameter or program the host changes shows in the window at the next refresh")
     func hostChangeShows() throws {
         let instrument = try Instrument()
         let model = try model(of: instrument)
-        let vowel = try #require(Parameters.named("vowel"))
-        let ring = try #require(Parameters.named("ring"))
-        #expect(abs(model.value(of: vowel, in: .keyboard) - vowel.defaultValue) < 0.01)
+        let pot = try #require(Parameters.named("pot"))
+        let release = try #require(Parameters.named("release"))
+        #expect(abs(model.value(of: pot, in: .keyboard) - pot.defaultValue) < 0.01)
 
-        try instrument.setParameter("vowel", to: vowel.range.upperBound)
+        try instrument.setParameter("pot", to: pot.range.upperBound)
         model.refresh()
-        #expect(model.position(of: vowel, in: .keyboard) == 1)
+        #expect(model.position(of: pot, in: .keyboard) == 1)
 
         try instrument.loadPreset(2)                          // the host's preset menu
         model.refresh()
         #expect(model.program(in: .keyboard) == 2)
-        #expect(abs(model.value(of: ring, in: .keyboard) - Programs.value(program: 2, parameter: ring)) < 0.001)
+        #expect(abs(model.value(of: release, in: .keyboard) - Programs.value(program: 2, parameter: release)) < 0.001)
     }
 
     @Test("Choosing a program loads the factory preset and leaves the octave alone")
@@ -110,27 +110,27 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let model = try model(of: instrument)
         let octave = try #require(Parameters.named("octave"))
-        let ring = try #require(Parameters.named("ring"))
+        let release = try #require(Parameters.named("release"))
         model.setPosition(1, of: octave, in: .keyboard)        // +2
 
-        model.loadProgram(3, into: .keyboard)                  // Morsing
+        model.loadProgram(3, into: .keyboard)                  // Zambomba
         #expect(model.program(in: .keyboard) == 3)
         #expect(try presentPreset(of: instrument.unit) == 3)
-        #expect(try instrument.parameter(ring.index) == Programs.value(program: 3, parameter: ring))
-        #expect(abs(model.value(of: ring, in: .keyboard) - Programs.value(program: 3, parameter: ring)) < 0.001)
+        #expect(try instrument.parameter(release.index) == Programs.value(program: 3, parameter: release))
+        #expect(abs(model.value(of: release, in: .keyboard) - Programs.value(program: 3, parameter: release)) < 0.001)
         #expect(try instrument.parameter(octave.index) == 2)
 
-        // A double click goes back to the program's value.
-        model.setPosition(1, of: ring, in: .keyboard)
-        model.resetToDefault(ring, in: .keyboard)
-        #expect(try instrument.parameter(ring.index) == Programs.value(program: 3, parameter: ring))
+        // A double click goes back to the program's value (through the knob's position: to a few ulps).
+        model.setPosition(1, of: release, in: .keyboard)
+        model.resetToDefault(release, in: .keyboard)
+        #expect(abs(try instrument.parameter(release.index) - Programs.value(program: 3, parameter: release)) < 1e-6)
     }
 
     @Test("After a project is reopened, the window shows the keyboard's program the engine holds")
     func programShownAfterRestore() throws {
         let saved = try Instrument()
         try saved.loadPreset(3)
-        try saved.setParameter("buzz", to: 55)                // the sound is no longer the preset's
+        try saved.setParameter("split", to: 55)                // the sound is no longer the preset's
         let state = try saved.classInfo()
 
         let reopened = try Instrument()
@@ -144,10 +144,10 @@ struct AudioUnitWindowTests {
         // A window opened afterwards shows it too, and a double click goes back to its value.
         let later = try model(of: reopened)
         #expect(later.program(in: .keyboard) == 3)
-        let buzz = try #require(Parameters.named("buzz"))
-        #expect(later.value(of: buzz, in: .keyboard) == 55)
-        later.resetToDefault(buzz, in: .keyboard)
-        #expect(try reopened.parameter(buzz.index) == Programs.value(program: 3, parameter: buzz))
+        let split = try #require(Parameters.named("split"))
+        #expect(later.value(of: split, in: .keyboard) == 55)
+        later.resetToDefault(split, in: .keyboard)
+        #expect(try reopened.parameter(split.index) == Programs.value(program: 3, parameter: split))
     }
 
     /// A host's listener for one parameter. It runs on a queue of its own, so it is made outside
@@ -176,16 +176,16 @@ struct AudioUnitWindowTests {
     func dragIsHeardByTheHost() async throws {
         let instrument = try Instrument()
         let model = try model(of: instrument)
-        let buzz = try #require(Parameters.named("buzz"))
+        let split = try #require(Parameters.named("split"))
 
         // A host listens to the parameter the way it does to record automation.
         let heard = Heard()
-        let host = try Self.listen(to: buzz, of: instrument.unit, heard: heard)
+        let host = try Self.listen(to: split, of: instrument.unit, heard: heard)
         defer { AUListenerDispose(host) }
 
-        model.beginEditing(buzz, in: .keyboard)
-        model.setPosition(0.5, of: buzz, in: .keyboard)
-        model.endEditing(buzz, in: .keyboard)
+        model.beginEditing(split, in: .keyboard)
+        model.setPosition(0.5, of: split, in: .keyboard)
+        model.endEditing(split, in: .keyboard)
 
         for _ in 0..<200 where heard.all.count < 3 {
             try await Task.sleep(for: .milliseconds(10))
@@ -200,8 +200,8 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument)
-        let ring = try #require(Parameters.named("ring"))
-        let buzz = try #require(Parameters.named("buzz"))
+        let release = try #require(Parameters.named("release"))
+        let split = try #require(Parameters.named("split"))
         let padSet = Int32(1 + 4)
 
         model.mode = .pads
@@ -209,18 +209,18 @@ struct AudioUnitWindowTests {
         #expect(model.shownSet == .pad(4))
         #expect(fanfrnoch_get_mode(engine) == Int32(FANFRNOCH_MODE_PADS))
 
-        model.setPosition(1, of: ring, in: .pad(4))
-        model.loadProgram(5, into: .pad(4))                   // Bamboo
-        model.setPosition(1, of: buzz, in: .pad(4))
+        model.setPosition(1, of: release, in: .pad(4))
+        model.loadProgram(5, into: .pad(4))                   // Putipù
+        model.setPosition(1, of: split, in: .pad(4))
         _ = try instrument.render()
         #expect(model.program(in: .pad(4)) == 5)
-        #expect(model.padName(4) == "Bamboo")
+        #expect(model.padName(4) == "Putipù")
         #expect(fanfrnoch_get_program(engine, padSet) == 5)
-        #expect(fanfrnoch_get_plain(engine, padSet, Int32(buzz.index)) == buzz.range.upperBound)
-        #expect(model.position(of: buzz, in: .pad(4)) == 1)
+        #expect(fanfrnoch_get_plain(engine, padSet, Int32(split.index)) == split.range.upperBound)
+        #expect(model.position(of: split, in: .pad(4)) == 1)
 
-        model.resetToDefault(buzz, in: .pad(4))
-        #expect(abs(fanfrnoch_get_plain(engine, padSet, Int32(buzz.index)) - Programs.value(program: 5, parameter: buzz)) < 0.001)
+        model.resetToDefault(split, in: .pad(4))
+        #expect(abs(fanfrnoch_get_plain(engine, padSet, Int32(split.index)) - Programs.value(program: 5, parameter: split)) < 0.001)
 
         // The keyboard set, the unit's parameters and its preset are as they were.
         for parameter in Parameters.all {
@@ -231,11 +231,11 @@ struct AudioUnitWindowTests {
         #expect(try presentPreset(of: instrument.unit) == 0)
 
         // And the other way round: the keyboard's knobs leave the pad alone.
-        let padRing = fanfrnoch_get_plain(engine, padSet, Int32(ring.index))
-        model.setPosition(0, of: ring, in: .keyboard)
+        let padRelease = fanfrnoch_get_plain(engine, padSet, Int32(release.index))
+        model.setPosition(0, of: release, in: .keyboard)
         model.loadProgram(2, into: .keyboard)
         _ = try instrument.render()
-        #expect(fanfrnoch_get_plain(engine, padSet, Int32(ring.index)) == padRing)
+        #expect(fanfrnoch_get_plain(engine, padSet, Int32(release.index)) == padRelease)
         #expect(fanfrnoch_get_program(engine, padSet) == 5)
     }
 
@@ -269,11 +269,11 @@ struct AudioUnitWindowTests {
     func padEditsTellTheHost() throws {
         let instrument = try Instrument()
         let model = try model(of: instrument)
-        let ring = try #require(Parameters.named("ring"))
+        let release = try #require(Parameters.named("release"))
 
         try countStateChanges(of: instrument.unit) { calls in
             // A drag edits many times; the host hears of it once, after it rests.
-            for step in 0...20 { model.setPosition(Double(step) / 20, of: ring, in: .pad(1)) }
+            for step in 0...20 { model.setPosition(Double(step) / 20, of: release, in: .pad(1)) }
             model.refresh()
             #expect(calls.count == 0)
             model.tellHostIfEdited()                          // the window closes
@@ -282,7 +282,7 @@ struct AudioUnitWindowTests {
             #expect(calls.count == 1)                         // nothing new
 
             // The keyboard's knobs are the unit's parameters: the host knows of them already.
-            model.setPosition(0.3, of: ring, in: .keyboard)
+            model.setPosition(0.3, of: release, in: .keyboard)
             model.tellHostIfEdited()
             #expect(calls.count == 1)
 
@@ -318,7 +318,7 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument)
-        let ring = try #require(Parameters.named("ring"))
+        let release = try #require(Parameters.named("release"))
 
         model.keyDown(55, velocity: 100)                      // the window's keyboard
         _ = try instrument.render()
@@ -327,16 +327,16 @@ struct AudioUnitWindowTests {
         #expect(model.lastNote == 55)
 
         model.loadProgram(5, into: .keyboard)
-        model.setPosition(1, of: ring, in: .keyboard)         // not rendered yet: only the unit holds it
+        model.setPosition(1, of: release, in: .keyboard)         // not rendered yet: only the unit holds it
         model.sendToPad(6)
 
         let padSet = Int32(1 + 6)
         #expect(fanfrnoch_pad_note(engine, 6) == 55)
         #expect(fanfrnoch_get_program(engine, padSet) == 5)
-        #expect(abs(fanfrnoch_get_plain(engine, padSet, Int32(ring.index)) - ring.range.upperBound) < 1e-4)
+        #expect(abs(fanfrnoch_get_plain(engine, padSet, Int32(release.index)) - release.range.upperBound) < 1e-4)
         #expect(model.padNote(6) == 55)
         #expect(model.program(in: .pad(6)) == 5)
-        #expect(model.position(of: ring, in: .pad(6)) == 1)
+        #expect(model.position(of: release, in: .pad(6)) == 1)
     }
 
     @Test("A pad hit on screen plays the pad, selects it and counts")
@@ -359,8 +359,11 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument)
-        let keyUp = try #require(Parameters.named("keyup"))
-        model.setPosition(1, of: keyUp, in: .keyboard)        // Damp: a released key stops at once
+        // Key Up Stop: a released key stops the hand, and the head rings out within a second; the
+        // hand would rub on for 2 s. Drum Many: the two keys are two drums.
+        model.setPosition(1, of: try #require(Parameters.named("keyup")), in: .keyboard)
+        model.setPosition(1, of: try #require(Parameters.named("length")), in: .keyboard)
+        model.setPosition(1, of: try #require(Parameters.named("drum")), in: .keyboard)
         _ = try instrument.render()
 
         model.keyDown(50, velocity: 100)
@@ -369,7 +372,7 @@ struct AudioUnitWindowTests {
         #expect(fanfrnoch_sounding_voices(engine) == 2)
 
         model.releaseHeld()                                   // the window goes away mid-press
-        _ = try instrument.render()
+        _ = try instrument.render(seconds: 1.2)
         #expect(fanfrnoch_sounding_voices(engine) == 0)
     }
 
@@ -389,10 +392,10 @@ struct AudioUnitWindowTests {
     func unitGoneDetaches() throws {
         let unit = try disposableUnit()
         let model = try #require(AudioUnitModel(unit: unit))
-        let ring = try #require(Parameters.named("ring"))
+        let release = try #require(Parameters.named("release"))
         model.setPadNote(60, pad: 1)                          // a notice for the host is waiting
-        let padRing = model.position(of: ring, in: .pad(2))
-        let keyboardRing = model.position(of: ring, in: .keyboard)
+        let padRelease = model.position(of: release, in: .pad(2))
+        let keyboardRelease = model.position(of: release, in: .keyboard)
         let group = model.padGroup(1)
         #expect(!model.isDetached)
 
@@ -402,11 +405,11 @@ struct AudioUnitWindowTests {
 
         // Everything the window can still do is dropped: nothing reaches the freed engine.
         model.mode = .pads
-        model.setPosition(1, of: ring, in: .pad(2))
-        model.beginEditing(ring, in: .keyboard)
-        model.setPosition(0, of: ring, in: .keyboard)
-        model.endEditing(ring, in: .keyboard)
-        model.resetToDefault(ring, in: .pad(2))
+        model.setPosition(1, of: release, in: .pad(2))
+        model.beginEditing(release, in: .keyboard)
+        model.setPosition(0, of: release, in: .keyboard)
+        model.endEditing(release, in: .keyboard)
+        model.resetToDefault(release, in: .pad(2))
         model.loadProgram(3, into: .keyboard)
         model.loadProgram(3, into: .pad(2))
         model.setPadNote(70, pad: 1)
@@ -422,8 +425,8 @@ struct AudioUnitWindowTests {
         model.refresh()
 
         #expect(model.mode == .keyboard)
-        #expect(model.position(of: ring, in: .pad(2)) == padRing)
-        #expect(model.position(of: ring, in: .keyboard) == keyboardRing)
+        #expect(model.position(of: release, in: .pad(2)) == padRelease)
+        #expect(model.position(of: release, in: .keyboard) == keyboardRelease)
         #expect(model.program(in: .keyboard) == 0)
         #expect(model.padNote(1) == 60)
         #expect(model.padGroup(1) == group)
@@ -457,20 +460,20 @@ struct AudioUnitWindowTests {
 
     private func knob(_ identifier: String) throws -> Parameter { try #require(Parameters.named(identifier)) }
 
-    /// A keyboard sound no program has: program 2 (Kubyz) with Vowel at 777 Hz, the octave up and
-    /// LFO 1 on Vowel.
+    /// A keyboard sound no program has: program 2 (Brummtopf) with Pot at 777 Hz, the octave up and
+    /// LFO 1 on Pot.
     private func makeASound(with model: AudioUnitModel) throws {
         model.loadProgram(2, into: .keyboard)
-        model.setPosition(Double(try knob("vowel").normalised(777)), of: try knob("vowel"), in: .keyboard)
+        model.setPosition(Double(try knob("pot").normalised(777)), of: try knob("pot"), in: .keyboard)
         model.setPosition(Double(try knob("octave").normalised(1)), of: try knob("octave"), in: .keyboard)
-        model.setPosition(Double(try knob("lfo1vowel").normalised(30)), of: try knob("lfo1vowel"), in: .keyboard)
+        model.setPosition(Double(try knob("lfo1pot").normalised(30)), of: try knob("lfo1pot"), in: .keyboard)
     }
 
     /// The sound of `makeASound` is in the unit's parameters.
     private func expectTheSound(in instrument: Instrument, _ comment: Comment? = nil) throws {
-        #expect(abs(try instrument.parameter(try knob("vowel").index) - 777) < 0.5, comment)
+        #expect(abs(try instrument.parameter(try knob("pot").index) - 777) < 0.5, comment)
         #expect(try instrument.parameter(try knob("octave").index) == 1, comment)
-        #expect(abs(try instrument.parameter(try knob("lfo1vowel").index) - 30) < 0.01, comment)
+        #expect(abs(try instrument.parameter(try knob("lfo1pot").index) - 30) < 0.01, comment)
     }
 
     @Test("The window saves a set's sound as a preset, and loading it into the keyboard or a pad brings every value back")
@@ -480,7 +483,7 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument, files: files)
-        let vowel = try knob("vowel"), ring = try knob("ring")
+        let pot = try knob("pot"), release = try knob("release")
         #expect(model.presets.isEmpty)
         #expect(model.presetInUse(in: .keyboard) == nil)
 
@@ -496,37 +499,37 @@ struct AudioUnitWindowTests {
         model.setPosition(Double(try knob("octave").normalised(-1)), of: try knob("octave"), in: .keyboard)
         #expect(model.presetInUse(in: .keyboard) == nil)
         #expect(try instrument.presetNames()[0] == "")
-        #expect(abs(try instrument.parameter(vowel.index) - 777) > 1)
+        #expect(abs(try instrument.parameter(pot.index) - 777) > 1)
 
         // Into the keyboard: the unit's parameters, the program it grew from, and its name.
         try model.loadPreset("Mine", into: .keyboard)
         #expect(model.presetInUse(in: .keyboard) == "Mine")
         try expectTheSound(in: instrument)
-        #expect(abs(model.value(of: vowel, in: .keyboard) - 777) < 0.5)   // the window's knob too
+        #expect(abs(model.value(of: pot, in: .keyboard) - 777) < 0.5)   // the window's knob too
         #expect(model.program(in: .keyboard) == 2)
         #expect(fanfrnoch_get_program(engine, Int32(FANFRNOCH_KEYBOARD_SET)) == 2)
         #expect(try presentPresetName(of: instrument.unit) == "Mine")
         #expect(try instrument.presetNames()[0] == "Mine")
         _ = try instrument.render()
-        #expect(abs(fanfrnoch_get_plain(engine, Int32(FANFRNOCH_KEYBOARD_SET), Int32(vowel.index)) - 777) < 0.5)
+        #expect(abs(fanfrnoch_get_plain(engine, Int32(FANFRNOCH_KEYBOARD_SET), Int32(pot.index)) - 777) < 0.5)
 
         // Into a pad: the engine; the keyboard and the unit's parameters stay.
         try model.loadPreset("Mine", into: .pad(4))
         let padSet = Int32(1 + 4)
-        #expect(abs(fanfrnoch_get_plain(engine, padSet, Int32(vowel.index)) - 777) < 0.5)
+        #expect(abs(fanfrnoch_get_plain(engine, padSet, Int32(pot.index)) - 777) < 0.5)
         #expect(fanfrnoch_get_program(engine, padSet) == 2)
-        #expect(abs(model.value(of: vowel, in: .pad(4)) - 777) < 0.5)
+        #expect(abs(model.value(of: pot, in: .pad(4)) - 777) < 0.5)
         #expect(model.presetInUse(in: .pad(4)) == "Mine")
         #expect(model.padName(4) == "Mine")
         #expect(model.padName(5) == PadLabel.name(program: model.program(in: .pad(5))))
         #expect(try instrument.presetNames()[5] == "Mine")
 
         // Saved from a pad: the pad's own sound.
-        model.setPosition(1, of: ring, in: .pad(4))
+        model.setPosition(1, of: release, in: .pad(4))
         try model.savePreset(as: "Pad sound", from: .pad(4))
         #expect(model.presets == ["Mine", "Pad sound"])
         #expect(model.presetInUse(in: .pad(4)) == "Pad sound")
-        #expect(abs(try files.presets.load("Pad sound").values["ring"]! - ring.range.upperBound) < 1e-3)
+        #expect(abs(try files.presets.load("Pad sound").values["release"]! - release.range.upperBound) < 1e-3)
         #expect(model.presetInUse(in: .keyboard) == "Mine")
         try expectTheSound(in: instrument)
     }
@@ -542,9 +545,9 @@ struct AudioUnitWindowTests {
         model.loadProgram(0, into: .keyboard)
         model.tellHostIfEdited()
 
-        let vowel = try knob("vowel")
+        let pot = try knob("pot")
         let heard = Heard()
-        let host = try Self.listen(to: vowel, of: instrument.unit, heard: heard)
+        let host = try Self.listen(to: pot, of: instrument.unit, heard: heard)
         defer { AUListenerDispose(host) }
         try countStateChanges(of: instrument.unit) { calls in
             try model.loadPreset("Mine", into: .keyboard)
@@ -564,26 +567,26 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument, files: files)
-        let vowel = try knob("vowel")
+        let pot = try knob("pot")
         try makeASound(with: model)
         try model.savePreset(as: "Mine", from: .keyboard)
 
-        model.setPosition(Double(vowel.normalised(2000)), of: vowel, in: .keyboard)
-        model.resetToDefault(vowel, in: .keyboard)
-        #expect(abs(try instrument.parameter(vowel.index) - 777) < 0.5)
+        model.setPosition(Double(pot.normalised(2000)), of: pot, in: .keyboard)
+        model.resetToDefault(pot, in: .keyboard)
+        #expect(abs(try instrument.parameter(pot.index) - 777) < 0.5)
 
         try model.loadPreset("Mine", into: .pad(2))
-        model.setPosition(Double(vowel.normalised(2000)), of: vowel, in: .pad(2))
-        model.resetToDefault(vowel, in: .pad(2))
-        #expect(abs(fanfrnoch_get_plain(engine, 3, Int32(vowel.index)) - 777) < 0.5)
+        model.setPosition(Double(pot.normalised(2000)), of: pot, in: .pad(2))
+        model.resetToDefault(pot, in: .pad(2))
+        #expect(abs(fanfrnoch_get_plain(engine, 3, Int32(pot.index)) - 777) < 0.5)
 
         model.loadProgram(0, into: .keyboard)
-        model.setPosition(Double(vowel.normalised(2000)), of: vowel, in: .keyboard)
-        model.resetToDefault(vowel, in: .keyboard)
-        #expect(abs(try instrument.parameter(vowel.index) - Programs.value(program: 0, parameter: vowel)) < 0.5)
+        model.setPosition(Double(pot.normalised(2000)), of: pot, in: .keyboard)
+        model.resetToDefault(pot, in: .keyboard)
+        #expect(abs(try instrument.parameter(pot.index) - Programs.value(program: 0, parameter: pot)) < 0.5)
         model.loadProgram(5, into: .pad(2))
-        model.resetToDefault(vowel, in: .pad(2))
-        #expect(abs(fanfrnoch_get_plain(engine, 3, Int32(vowel.index)) - Programs.value(program: 5, parameter: vowel)) < 0.5)
+        model.resetToDefault(pot, in: .pad(2))
+        #expect(abs(fanfrnoch_get_plain(engine, 3, Int32(pot.index)) - Programs.value(program: 5, parameter: pot)) < 0.5)
     }
 
     @Test("A host's project brings the presets in use back, and the window shows them while the folder has them")
@@ -697,7 +700,7 @@ struct AudioUnitWindowTests {
         defer { remove(files) }
         let instrument = try Instrument()
         let model = try model(of: instrument, files: files)
-        let vowel = try knob("vowel")
+        let pot = try knob("pot")
         try makeASound(with: model)
         try model.savePreset(as: "Mine", from: .keyboard)
         try model.loadPreset("Mine", into: .pad(1))
@@ -717,8 +720,8 @@ struct AudioUnitWindowTests {
         #expect(model.presetInUse(in: .keyboard) == nil)
 
         // A double click goes to the program's value now.
-        model.resetToDefault(vowel, in: .keyboard)
-        #expect(abs(try instrument.parameter(vowel.index) - Programs.value(program: 2, parameter: vowel)) < 0.5)
+        model.resetToDefault(pot, in: .keyboard)
+        #expect(abs(try instrument.parameter(pot.index) - Programs.value(program: 2, parameter: pot)) < 0.5)
 
         // Failures are thrown and shown, and change nothing.
         #expect(model.lastError == nil)
@@ -740,14 +743,14 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument, files: files)
-        let vowel = try knob("vowel"), ring = try knob("ring")
+        let pot = try knob("pot"), release = try knob("release")
         try makeASound(with: model)
         try model.savePreset(as: "Mine", from: .keyboard)
         try model.loadPreset("Mine", into: .pad(1))
         model.setPadNote(60, pad: 3)
         model.setPadGroup(5, pad: 3)
         model.loadProgram(4, into: .pad(7))
-        model.setPosition(1, of: ring, in: .pad(7))
+        model.setPosition(1, of: release, in: .pad(7))
 
         try model.saveKit(as: "Kit A")
         #expect(model.kits == ["Kit A"])
@@ -766,11 +769,11 @@ struct AudioUnitWindowTests {
         #expect(model.mode == .pads)
         #expect(model.presetInUse(in: .pad(1)) == "Mine")
         #expect(model.padName(1) == "Mine")
-        #expect(abs(fanfrnoch_get_plain(engine, 2, Int32(vowel.index)) - 777) < 0.5)
+        #expect(abs(fanfrnoch_get_plain(engine, 2, Int32(pot.index)) - 777) < 0.5)
         #expect(model.padNote(3) == 60 && fanfrnoch_pad_note(engine, 3) == 60)
         #expect(model.padGroup(3) == 5)
         #expect(model.program(in: .pad(7)) == 4)
-        #expect(model.position(of: ring, in: .pad(7)) == 1)
+        #expect(model.position(of: release, in: .pad(7)) == 1)
         #expect(try instrument.presetNames()[2] == "Mine")
         try expectTheSound(in: instrument)                               // the keyboard is untouched
 
@@ -792,41 +795,41 @@ struct AudioUnitWindowTests {
     func windowLearns() throws {
         let instrument = try Instrument()
         let model = try model(of: instrument)
-        let ring = try knob("ring"), vowel = try knob("vowel")
+        let release = try knob("release"), pot = try knob("pot")
         #expect(model.learning == nil)
-        #expect(model.controller(of: ring) == 72)
-        #expect(model.controller(of: try knob("lfo1vowel")) == nil)
+        #expect(model.controller(of: release) == 72)
+        #expect(model.controller(of: try knob("lfo1pot")) == nil)
 
         try countStateChanges(of: instrument.unit) { calls in
-            model.learn(ring)
-            #expect(model.learning == ring)
+            model.learn(release)
+            #expect(model.learning == release)
             try send(controller: 3, value: 127, to: instrument)
             model.refresh()
             #expect(model.learning == nil)
-            #expect(model.controller(of: ring) == 3)
-            #expect(abs(try instrument.parameter(ring.index) - ring.range.upperBound) < 1e-3)
+            #expect(model.controller(of: release) == 3)
+            #expect(abs(try instrument.parameter(release.index) - release.range.upperBound) < 1e-3)
             model.tellHostIfEdited()
             #expect(calls.count == 1)                         // the learnt controller is saved state
 
-            model.setController(74, of: ring)                 // Vowel's: it moves to Ring
-            #expect(model.controller(of: ring) == 74)
-            #expect(model.controller(of: vowel) == nil)
-            model.setController(nil, of: ring)
-            #expect(model.controller(of: ring) == nil)
+            model.setController(87, of: release)                 // Pot's: it moves to Release
+            #expect(model.controller(of: release) == 87)
+            #expect(model.controller(of: pot) == nil)
+            model.setController(nil, of: release)
+            #expect(model.controller(of: release) == nil)
             model.tellHostIfEdited()
             #expect(calls.count == 2)
         }
 
         let state = try instrument.classInfo()
         model.resetControllers()
-        #expect(model.controller(of: ring) == 72)
-        #expect(model.controller(of: vowel) == 74)
+        #expect(model.controller(of: release) == 72)
+        #expect(model.controller(of: pot) == 87)
 
         let reopened = try Instrument()
         try reopened.restore(state)
         let later = try self.model(of: reopened)
-        #expect(later.controller(of: ring) == nil)
-        #expect(later.controller(of: vowel) == nil)
+        #expect(later.controller(of: release) == nil)
+        #expect(later.controller(of: pot) == nil)
     }
 
     @Test("Closing the window or switching to the pads calls a learn off: no knob is left listening")
@@ -834,26 +837,26 @@ struct AudioUnitWindowTests {
         let instrument = try Instrument()
         let engine = try instrument.engine()
         let model = try model(of: instrument)
-        let vowel = try knob("vowel")
+        let pot = try knob("pot")
 
-        model.learn(vowel)
-        #expect(fanfrnoch_learning(engine) == Int32(vowel.index))
+        model.learn(pot)
+        #expect(fanfrnoch_learning(engine) == Int32(pot.index))
         model.windowClosed()
         #expect(model.learning == nil)
         #expect(fanfrnoch_learning(engine) == -1)
         try send(controller: 3, value: 100, to: instrument)
         model.refresh()
-        #expect(model.controller(of: vowel) == 74)
+        #expect(model.controller(of: pot) == 87)
         #expect(!Parameters.all.contains { model.controller(of: $0) == 3 })
 
-        model.learn(vowel)
+        model.learn(pot)
         model.mode = .pads
         #expect(model.learning == nil)
         #expect(fanfrnoch_learning(engine) == -1)
 
         // A mode the host restores calls it off too.
         model.mode = .keyboard
-        model.learn(vowel)
+        model.learn(pot)
         fanfrnoch_set_mode(engine, Int32(FANFRNOCH_MODE_PADS))
         model.refresh()
         #expect(model.learning == nil)

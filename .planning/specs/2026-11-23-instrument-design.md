@@ -159,7 +159,7 @@ One **knob set**; the order is permanent. Defaults are the prototype's `Params`
 | Pitch | `wobble` | Wobble | 0–60 cents | 20 |
 | Pitch | `jump` | Jump | 0–100 % | 0 % |
 | Pitch | `jumpratio` | Jump Ratio | 1.1–2.5 | 1.40 |
-| Pitch | `veltune` | Vel>Pitch | 0–100 cents | 0 |
+| Pitch | `velpitch` | Vel>Pitch | 0–100 cents | 0 |
 | Friction | `stick` | Stick | 0.50–0.95 | 0.88 |
 | Friction | `stickvel` | Stick>Level | 0–0.10 | 0.03 |
 | Friction | `split` | Split | 0–100 % | 0 % |
@@ -184,6 +184,8 @@ One **knob set**; the order is permanent. Defaults are the prototype's `Params`
 
 - The exact ranges of the "bottom = off" knobs, and whether a knob's values are linear or log,
   are **[builder]**, keeping the prototype's defaults exactly reachable.
+- Vel>Pitch's identifier is `velpitch`, not `veltune`: that is VEL>Tune's (`vel` + `tune`)
+  **[builder, phase 02]**. Phase 02's builder decisions: `phases/02-engine/VERIFICATION.md`.
 - **LFO amounts [call]:** targets Pitch (in cents, ±100), Stick, Rub, Pot, Pot Level, Skin
   Level, Wobble, Creak, Split, Volume, Pan. Each voice carries its own LFO phases; with
   LFO Start = Hit a stroke repeats exactly.

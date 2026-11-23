@@ -9,5 +9,5 @@ Phases, newest first. One phase = one folder in `phases/`, one branch, one
 | 05-icon-website | App icon and website look by Codex, manual screenshots | ⏳ |
 | 04-app-and-audiounit | The panel's sections, the default kit, presets/kits/MIDI learn adapted, auval, manual EN + CS | ⏳ |
 | 03-panel-design | Codex concepts and artwork | ⏳ |
-| 02-engine | `FanfrnochDSP`: the slip-clock friction drum of the approved prototype, drums, programs, regression tests | ⏳ |
+| 02-engine | `FanfrnochDSP`: the slip-clock friction drum of the approved prototype, drums, programs, regression tests — built on `feature/02-engine` 2026-11-23, not merged yet | ✅ |
 | 01-skeleton | Brumle 1.0.0 copied and renamed to Fanfrnoch: new identity (aumu/Fanf/JPis, io.jp4.fanfrnoch), builds, 275 inherited tests green — 2026-11-23 | ✅ |

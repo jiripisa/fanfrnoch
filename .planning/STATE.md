@@ -1,5 +1,13 @@
 # Fanfrnoch — State
 
+- 2026-11-24 — phase 04 (app and Audio Unit) built on `feature/04-app-and-audiounit` (not merged):
+  the panel is concept 1 "Modrotisk" (`PanelLayout`: Stroke | Hands | Pitch over Friction | Body |
+  Noise, Master on the right; window 1100 × 732 pt), the upright drum in both footers; presets,
+  kits and MIDI learn driven in the real app; 290 tests green, TSan clean, auval passes; the manual
+  rewritten for the friction drum in English and Czech (`phases/04-app-and-audiounit/VERIFICATION.md`).
+  Open: nothing was heard or clicked with the mouse in this phase; a real host. Next: merge, then
+  phase 05-icon-website (icon, website by Codex; `docs/index.html` and the CSS are still the jaw
+  harp's).
 - 2026-11-23 — phase 02 (engine) built on `feature/02-engine` (not merged): the spike's voice in
   Brumle's pool, drums (a stroke on a sounding drum continues its voice), 103 parameters (IDs
   0…102), twelve programs, the default kit; equivalence with the reference −122 dB or better,

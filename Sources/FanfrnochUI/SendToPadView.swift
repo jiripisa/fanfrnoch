@@ -14,7 +14,7 @@ struct SendToPadView: View {
     /// The pad chosen, waiting for Replace or Cancel; nil before a choice.
     @State private var asking: Int?
 
-    private static let tileWidth: CGFloat = 104
+    private static let tileWidth: CGFloat = 132
     private static let spacing: CGFloat = 6
 
     /// `asking` is the pad the view opens asking about, for a picture of that
@@ -48,7 +48,7 @@ struct SendToPadView: View {
                 question(pad)
             }
         }
-        .padding(14)
+        .padding(12)
         .fixedSize()
         // The popover in the panel's dark look, whatever the system's.
         .preferredColorScheme(.dark)
@@ -64,12 +64,13 @@ struct SendToPadView: View {
                     .font(.system(size: 13, weight: .semibold, design: .serif))
                     .foregroundStyle(Artwork.cream)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.8)            // "03  Fanfrnoch High"
                 Text(Notes.name(model.padNote(pad)))
                     .font(.system(size: 11).monospacedDigit())
                     .foregroundStyle(Artwork.parchment)
             }
             .padding(.horizontal, 4)
-            .frame(width: Self.tileWidth, height: 38)
+            .frame(width: Self.tileWidth, height: 32)
             .background(chosen ? Artwork.terracotta.opacity(0.25) : Artwork.indigo.opacity(0.5),
                         in: .rect(cornerRadius: 8))
             .overlay {
@@ -102,7 +103,6 @@ struct SendToPadView: View {
                 .keyboardShortcut(.defaultAction)
                 .tint(Artwork.terracotta)
             }
-            .controlSize(.large)
         }
         .frame(width: CGFloat(PadGrid.columns) * Self.tileWidth + CGFloat(PadGrid.columns - 1) * Self.spacing,
                alignment: .leading)

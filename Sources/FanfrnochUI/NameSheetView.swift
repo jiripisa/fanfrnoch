@@ -68,6 +68,7 @@ struct NameSheetView: View {
                     .keyboardShortcut(.cancelAction)
                     Button("Replace") { finish() }
                         .keyboardShortcut(.defaultAction)
+                        .tint(Artwork.terracotta)
                 }
             } else {
                 Text(note)
@@ -82,6 +83,7 @@ struct NameSheetView: View {
                     Button("Save", action: saveOrAsk)
                         .keyboardShortcut(.defaultAction)
                         .disabled(!check.canSave)
+                        .tint(Artwork.terracotta)
                 }
             }
         }

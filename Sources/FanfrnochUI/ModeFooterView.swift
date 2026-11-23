@@ -103,7 +103,9 @@ public struct ModeFooterView: View {
         }
         .buttonStyle(.glass)
         .help("Copy the keyboard's sound, at the last note played, to a pad")
-        .popover(isPresented: $sending) {
+        // Beside the button, to its left: centred over it, the popover would hang past the
+        // window's right edge.
+        .popover(isPresented: $sending, arrowEdge: .leading) {
             SendToPadView(model: model, isPresented: $sending)
         }
         .padding(.trailing, 6)

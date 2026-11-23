@@ -15,3 +15,4 @@
 - LFO 1, LFO 2 and VEL amounts are set on the knobs themselves; a MIDI controller on every knob and switch, which can learn another with a click.
 - Audio Unit instrument with the app's window, installed from the app's Settings.
 - The "Modrotisk" look: indigo blueprint cloth, cream floral ornament, a terracotta jug and Liquid Glass cards.
+- The app icon: the terracotta fanfrnoch on indigo modrotisk cloth, filling the whole icon shape.

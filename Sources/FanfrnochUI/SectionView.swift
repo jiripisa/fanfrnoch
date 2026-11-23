@@ -2,8 +2,9 @@ import SwiftUI
 import FanfrnochCore
 
 /// One group of controls (Stroke, Hands, Pitch, Friction, Body, Noise, Master) on a glass
-/// panel: its title, then its knobs and switches where `SectionLayout` puts
-/// them.
+/// card: its title in New York over a thin line, then its knobs and switches where
+/// `SectionLayout` puts them. A card taller than its controls (Hands, Noise beside their
+/// neighbours) centres them below the title, as the mockup does.
 struct SectionView: View {
 
     let section: ParameterSection
@@ -11,51 +12,64 @@ struct SectionView: View {
     let model: any InstrumentModel
     let editing: KnobEditing
 
+    /// The card's padding on either side, together: what `PanelLayout.widths` leaves out of the
+    /// share of the columns.
+    static let inset: CGFloat = 16
+
     var body: some View {
         let layout = SectionLayout.of(section)
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 3) {
             Text(section.title)
-                .font(.system(size: 22, weight: .semibold, design: .serif))
-                .foregroundStyle(Artwork.silver)
+                .font(.system(size: 21, weight: .semibold, design: .serif))
+                .foregroundStyle(Artwork.cream)
                 .padding(.leading, 4)
             Rectangle()
-                .fill(Artwork.silver.opacity(0.18))
+                .fill(Artwork.cream.opacity(0.2))
                 .frame(height: 1)
-            Grid(horizontalSpacing: 2, verticalSpacing: 4) {
+            Grid(horizontalSpacing: 0, verticalSpacing: 0) {
                 ForEach(layout.rows.indices, id: \.self) { index in
                     switch layout.rows[index] {
                     case .cells(let parameters):
                         GridRow {
-                            ForEach(parameters) { control($0) }
+                            ForEach(parameters) { control($0).frame(maxWidth: .infinity) }
                         }
                     case .wide(let parameter):
-                        control(parameter)
-                            .gridCellColumns(layout.columns)
-                            .padding(.top, 2)
+                        // Outside a GridRow a view spans every column.
+                        ChoiceView(parameter: parameter, set: set, model: model, editing: editing, inline: true)
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                    case .rule:
+                        Rectangle()
+                            .fill(Artwork.cream.opacity(0.16))
+                            .frame(height: 1)
+                            .padding(.vertical, 3)
                     }
                 }
             }
+            .frame(maxHeight: .infinity)
         }
-        .padding(8)
-        // Room to spare goes to every group alike; each is as tall as the tallest.
+        .padding(.horizontal, Self.inset / 2)
+        .padding(.top, 5)
+        .padding(.bottom, 7)
+        // Room to spare goes to every card alike; each is as tall as the tallest of its row.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .glassEffect(.regular.tint(Artwork.midnight.opacity(0.35)), in: .rect(cornerRadius: 16))
+        .instrumentCard()
     }
 
     @ViewBuilder
     private func control(_ parameter: Parameter) -> some View {
         if parameter.isChoice {
-            ChoiceView(parameter: parameter, set: set, model: model, editing: editing)
+            ChoiceView(parameter: parameter, set: set, model: model, editing: editing, inline: false)
         } else {
             KnobView(parameter: parameter, set: set, model: model, editing: editing)
         }
     }
 }
 
-/// A switch: its name above a glass segmented control with every choice
-/// (Stroke, Key Up, Curve, LFO Start), or a glass menu where the choices are
-/// many (the LFO shapes). Velocity and the LFOs move no switch, so it steps
-/// back while their amounts are being set.
+/// A switch: its name beside (`inline`, a row of its own) or above a glass
+/// segmented control with every choice (Key Up, Drum, LFO Start), or a glass
+/// menu where the choices are many (the LFO shapes). Velocity and the LFOs
+/// move no switch, so it steps back while their amounts are being set.
 ///
 /// While the MIDI button is on, its controller stands in the control's place,
 /// under its name, and it learns as a knob does (`ControllerHandling`).
@@ -65,30 +79,53 @@ struct ChoiceView: View {
     let set: SoundSet
     let model: any InstrumentModel
     let editing: KnobEditing
+    /// The name on the left and the control on the right, in a row across the card.
+    let inline: Bool
 
     /// More choices than this make a menu.
     private static let segmentsAtMost = 4
+    /// The width of a segment, and of a menu, in a row of their own: the mockup's.
+    private static let segmentWidth: CGFloat = 54
+    private static let menuWidth: CGFloat = 112
 
     private var showsController: Bool { editing == .controller }
 
     var body: some View {
-        VStack(spacing: 4) {
-            Text(parameter.name)
-                .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Artwork.bone)
-                .lineLimit(1)
-                .fixedSize()
-            control
-                // Kept in the layout under the controller, so that nothing moves.
-                .opacity(showsController ? 0 : 1)
-                .allowsHitTesting(!showsController)
-                .accessibilityHidden(showsController)
-                .overlay {
-                    if showsController { controller }
+        Group {
+            if inline {
+                HStack(spacing: 8) {
+                    name
+                    Spacer(minLength: 0)
+                    shownControl
                 }
+            } else {
+                VStack(spacing: 4) {
+                    name
+                    shownControl
+                }
+            }
         }
         .opacity(editing.stepsBack(parameter, in: set) ? 0.3 : 1)
         .allowsHitTesting(!editing.stepsBack(parameter, in: set))
+    }
+
+    private var name: some View {
+        Text(parameter.name)
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Artwork.cream)
+            .lineLimit(1)
+            .fixedSize()
+    }
+
+    private var shownControl: some View {
+        control
+            // Kept in the layout under the controller, so that nothing moves.
+            .opacity(showsController ? 0 : 1)
+            .allowsHitTesting(!showsController)
+            .accessibilityHidden(showsController)
+            .overlay {
+                if showsController { controller }
+            }
     }
 
     @ViewBuilder
@@ -103,13 +140,17 @@ struct ChoiceView: View {
             } label: {
                 Text(choices.indices.contains(chosen) ? choices[chosen] : "—")
                     .font(.system(size: 12))
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .menuStyle(.button)
             .buttonStyle(.glass)
-            .frame(width: KnobView.width - 4)
+            .buttonSizing(.flexible)
+            .frame(width: inline ? Self.menuWidth : KnobView.width - 4)
+            .controlSize(.small)
             .accessibilityLabel(parameter.name)
         } else {
-            GlassSegments(label: parameter.name, titles: choices, selected: chosen, action: choose)
+            GlassSegments(label: parameter.name, titles: choices, selected: chosen,
+                          segmentWidth: inline ? Self.segmentWidth : nil, action: choose)
         }
     }
 
@@ -120,13 +161,13 @@ struct ChoiceView: View {
                                           learning: model.learning)
         return Text(caption)
             .font(.system(size: 12).monospacedDigit())
-            .foregroundStyle(listening ? Artwork.aurora : Artwork.silver)
+            .foregroundStyle(listening ? Artwork.terracotta : Artwork.cream)
             .lineLimit(1)
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Artwork.midnight.opacity(0.4), in: Capsule())
+            .background(Artwork.indigo.opacity(0.5), in: Capsule())
             .overlay {
                 if listening {
-                    Capsule().stroke(Artwork.aurora, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                    Capsule().stroke(Artwork.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
                 }
             }
             .contentShape(Capsule())
@@ -146,17 +187,19 @@ struct ChoiceView: View {
     }
 }
 
-/// Choices side by side in a glass capsule; the chosen one lit in aurora.
+/// Choices side by side in a glass capsule; the chosen one lit in terracotta.
 /// Drawn here rather than left to the system's segmented picker, so that it
 /// shows what is chosen in a window that is not in front (a plug-in's, in a
 /// host).
 struct GlassSegments: View {
 
-    /// What the choice is, for VoiceOver ("Stroke", "Mode").
+    /// What the choice is, for VoiceOver ("Key Up", "Mode").
     let label: String
     let titles: [String]
     let selected: Int
     var fontSize: CGFloat = 12
+    /// Every segment this wide; nil for each as wide as its title.
+    var segmentWidth: CGFloat? = nil
     let action: (Int) -> Void
 
     var body: some View {
@@ -168,18 +211,19 @@ struct GlassSegments: View {
                         .font(.system(size: fontSize, weight: on ? .semibold : .regular))
                         .lineLimit(1)
                         .fixedSize()
-                        .foregroundStyle(on ? Artwork.midnight : Artwork.silver)
+                        .foregroundStyle(on ? Artwork.indigo : Artwork.cream)
                         .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(on ? Artwork.aurora : Color.clear, in: Capsule())
+                        .frame(width: segmentWidth)
+                        .padding(.vertical, 2)
+                        .background(on ? Artwork.terracotta : Color.clear, in: Capsule())
                         .contentShape(Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
-        .padding(3)
-        .glassEffect(.regular.tint(Artwork.midnight.opacity(0.4)).interactive(), in: .capsule)
+        .padding(2)
+        .glassEffect(.regular.tint(Artwork.indigo.opacity(0.4)).interactive(), in: .capsule)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(label)
     }

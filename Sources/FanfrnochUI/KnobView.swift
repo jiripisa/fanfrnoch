@@ -35,11 +35,11 @@ public enum KnobEditing: Equatable, Sendable {
         }
     }
 
-    /// The colour of the source whose amounts are being set; icy silver for
-    /// the controllers.
+    /// The colour of the source whose amounts are being set; cream for the
+    /// controllers.
     @MainActor var colour: Color {
         switch self {
-        case .value, .controller: Artwork.silver
+        case .value, .controller: Artwork.cream
         case .amount(let lfo): Artwork.lfo(lfo)
         case .velocity: Artwork.vel
         }
@@ -77,8 +77,8 @@ public struct KnobView: View {
     public static var width: CGFloat { 74 }
 
     private static let sweep = 270.0          // degrees of travel
-    private static let cap: CGFloat = 44      // the cap's artwork; its disc is about 80 % of it
-    private static let dial: CGFloat = 56     // the value arc's outer edge
+    private static let cap: CGFloat = 33      // the cap's artwork; its disc is about 80 % of it
+    private static let dial: CGFloat = 44     // the value arc's outer edge
 
     public init(parameter: Parameter, set: SoundSet, model: any InstrumentModel, editing: KnobEditing = .value) {
         self.parameter = parameter
@@ -102,31 +102,32 @@ public struct KnobView: View {
         VStack(spacing: 0) {
             Text(parameter.name)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Artwork.bone)
+                .foregroundStyle(Artwork.cream)
                 .lineLimit(1)
+                .fixedSize()
             ZStack {
                 arc(from: 0, to: 1)
                     .stroke(Color.white.opacity(0.14), style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .padding(1.5)
                 arc(from: parameter.isBipolar ? min(0.5, position) : 0, to: parameter.isBipolar ? max(0.5, position) : position)
-                    .stroke(Artwork.aurora.opacity(amount == nil && editing != .controller ? 1 : 0.4),
+                    .stroke(Artwork.terracotta.opacity(amount == nil && editing != .controller ? 1 : 0.4),
                             style: StrokeStyle(lineWidth: 3, lineCap: .round))
                     .padding(1.5)
                 modulationArcs(position: position)
                 cap
                     .frame(width: Self.cap, height: Self.cap)
-                // The pointer: a dark line on the cap, turning with the value.
+                // The pointer: a cream line on the graphite cap, turning with the value.
                 Capsule()
-                    .fill(Artwork.midnight.opacity(0.85))
-                    .frame(width: 2.5, height: 9)
-                    .offset(y: -11)
+                    .fill(Artwork.cream.opacity(0.9))
+                    .frame(width: 2.5, height: 7)
+                    .offset(y: -8.5)
                     .rotationEffect(.degrees(-Self.sweep / 2 + Self.sweep * position))
             }
             .frame(width: Self.dial, height: Self.dial)
             .overlay {
                 // Listening for a controller: a dashed ring round the knob.
                 if listening {
-                    Circle().stroke(Artwork.aurora, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])).padding(-1)
+                    Circle().stroke(Artwork.terracotta, style: StrokeStyle(lineWidth: 1.5, dash: [4, 3])).padding(-1)
                 }
             }
             .contentShape(Circle())
@@ -140,7 +141,7 @@ public struct KnobView: View {
             .onDisappear(perform: finishEdit)
             Text(valueText)
                 .font(.system(size: 12).monospacedDigit())
-                .foregroundStyle(listening ? Artwork.aurora : amount == nil ? Artwork.silver : editing.colour)
+                .foregroundStyle(listening ? Artwork.terracotta : amount == nil ? Artwork.parchment : editing.colour)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)            // "move a control" in a knob's width
         }
@@ -233,7 +234,7 @@ public struct KnobView: View {
     private func modulationArc(_ range: ClosedRange<Double>, colour: Color, ring: Int, lit: Bool) -> some View {
         arc(from: range.lowerBound, to: range.upperBound)
             .stroke(colour, style: StrokeStyle(lineWidth: lit ? 2 : 1.5, lineCap: .round))
-            .padding(4.5 + 2.25 * CGFloat(ring))
+            .padding(4.5 + 2 * CGFloat(ring))
     }
 
     @ViewBuilder
@@ -241,7 +242,7 @@ public struct KnobView: View {
         if let image = Artwork.knob {
             Image(nsImage: image).resizable().interpolation(.high)
         } else {
-            Circle().fill(Artwork.silver.opacity(0.75)).padding(Self.cap * 0.1)
+            Circle().fill(Artwork.indigo).padding(Self.cap * 0.1)
         }
     }
 

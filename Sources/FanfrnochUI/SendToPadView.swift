@@ -30,10 +30,10 @@ struct SendToPadView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("Send to pad")
                     .font(.system(size: 20, weight: .semibold, design: .serif))
-                    .foregroundStyle(Artwork.silver)
+                    .foregroundStyle(Artwork.cream)
                 Text("Choose the pad that takes the keyboard's sound.")
                     .font(.system(size: 12))
-                    .foregroundStyle(Artwork.bone)
+                    .foregroundStyle(Artwork.parchment)
             }
             Grid(horizontalSpacing: Self.spacing, verticalSpacing: Self.spacing) {
                 ForEach(0..<PadGrid.rows, id: \.self) { row in
@@ -62,19 +62,19 @@ struct SendToPadView: View {
             VStack(spacing: 2) {
                 Text("\(PadLabel.number(pad))  \(model.padName(pad))")
                     .font(.system(size: 13, weight: .semibold, design: .serif))
-                    .foregroundStyle(Artwork.silver)
+                    .foregroundStyle(Artwork.cream)
                     .lineLimit(1)
                 Text(Notes.name(model.padNote(pad)))
                     .font(.system(size: 11).monospacedDigit())
-                    .foregroundStyle(Artwork.bone)
+                    .foregroundStyle(Artwork.parchment)
             }
             .padding(.horizontal, 4)
             .frame(width: Self.tileWidth, height: 38)
-            .background(chosen ? Artwork.aurora.opacity(0.25) : Artwork.midnight.opacity(0.5),
+            .background(chosen ? Artwork.terracotta.opacity(0.25) : Artwork.indigo.opacity(0.5),
                         in: .rect(cornerRadius: 8))
             .overlay {
                 RoundedRectangle(cornerRadius: 8)
-                    .strokeBorder(chosen ? Artwork.aurora : Artwork.silver.opacity(0.2), lineWidth: chosen ? 2 : 1)
+                    .strokeBorder(chosen ? Artwork.terracotta : Artwork.cream.opacity(0.2), lineWidth: chosen ? 2 : 1)
             }
             .contentShape(.rect(cornerRadius: 8))
         }
@@ -88,7 +88,7 @@ struct SendToPadView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(PadLabel.sendQuestion(pad: pad, name: model.padName(pad), lastNote: model.lastNote))
                 .font(.system(size: 13))
-                .foregroundStyle(Artwork.silver)
+                .foregroundStyle(Artwork.cream)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 Spacer()
@@ -100,7 +100,7 @@ struct SendToPadView: View {
                     isPresented = false
                 }
                 .keyboardShortcut(.defaultAction)
-                .tint(Artwork.aurora)
+                .tint(Artwork.terracotta)
             }
             .controlSize(.large)
         }

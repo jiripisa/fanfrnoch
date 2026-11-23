@@ -114,7 +114,7 @@ struct DeleteQuestionView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(LibraryMenu.deleteQuestion(name))
                 .font(.system(size: 13))
-                .foregroundStyle(Artwork.silver)
+                .foregroundStyle(Artwork.cream)
                 .frame(maxWidth: 260, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {

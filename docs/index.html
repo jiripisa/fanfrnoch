@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Fanfrnoch for macOS</title>
-<meta name="description" content="A playable synthesized jaw harp: twang, moving overtones, breath and rhythm, as an Audio Unit and a standalone app.">
+<meta name="description" content="A playable synthesized friction drum, after the Czech fanfrnoch: wet-hand strokes on a horsehair drum and its relatives from the Brummtopf to the cuíca, as an Audio Unit and a standalone app.">
 <meta property="og:title" content="Fanfrnoch">
-<meta property="og:description" content="A playable synthesized jaw harp: twang, moving overtones, breath and rhythm, as an Audio Unit and a standalone app.">
+<meta property="og:description" content="A playable synthesized friction drum, after the Czech fanfrnoch: wet-hand strokes on a horsehair drum and its relatives from the Brummtopf to the cuíca, as an Audio Unit and a standalone app.">
 <meta property="og:image" content="https://jiripisa.github.io/fanfrnoch/assets/fanfrnoch-window.png">
 <meta property="og:type" content="website">
 <link rel="alternate" hreflang="en" href="https://jiripisa.github.io/fanfrnoch/">
@@ -30,10 +30,10 @@
 <main id="top">
   <div class="wrap hero">
     <div class="hero-intro">
-      <img class="hero-art" src="assets/hero-khomus.jpg" alt="" width="2400" height="1000" fetchpriority="high">
+      <img class="hero-art" src="assets/hero-fanfrnoch.jpg" alt="" width="2400" height="1000" fetchpriority="high">
       <div class="hero-copy">
     <h1>Fanfrnoch</h1>
-    <p class="lede">A playable synthesized jaw harp: twang, moving overtones, breath and rhythm, as an Audio Unit and a standalone app.</p>
+    <p class="lede">A playable synthesized friction drum, after the Czech fanfrnoch: wet-hand strokes on a horsehair drum and its relatives from the Brummtopf to the cuíca, as an Audio Unit and a standalone app.</p>
     <div class="actions">
       <a class="button" href="https://github.com/jiripisa/fanfrnoch/releases/download/v1.0.0/Fanfrnoch-1.0.0.dmg">
         <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M10 3v10m0 0-4-4m4 4 4-4M4 16h12" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -53,28 +53,50 @@
       <h2>What it does</h2>
       <div class="grid">
         <div>
-          <h3>A jaw harp to play</h3>
-          <p>The twang of the reed and the overtones that move as the mouth
-          changes shape, with breath behind them. Seven built-in programs, from
-          the Alpine jaw harp to the Indonesian genggong.</p>
+          <h3>A friction drum to play</h3>
+          <p>A clay jug covered with a skin, two tufts of horsehair through it,
+          pulled by wet hands: the drum Czech carollers play at Christmas.
+          Twelve built-in programs play it and its relatives: the German
+          Brummtopf, the Spanish zambomba, the Neapolitan putipù, the Brazilian
+          cuíca, the Venezuelan furruco and the Romanian buhai, plus a creak
+          and a flick.</p>
+        </div>
+        <div>
+          <h3>Synthesized, not sampled</h3>
+          <p>Every stroke is made as it sounds, not played back from a
+          recording, so it can move: scoop up into its pitch like the cuíca's
+          whoop, drift as the hand pulls, or jump to a higher mode of the skin.
+          Vary keeps no two strokes quite alike.</p>
+        </div>
+        <div>
+          <h3>Two hands, one drum</h3>
+          <p>A player pulls with both hands in turn, and the weaker one is a
+          little quieter and a little off. A stroke on a sounding drum goes on
+          from where the skin is, so strokes run into each other with a dip,
+          not a click. With Drum One the whole keyboard is one drum; with Drum
+          Many every note is a drum of its own.</p>
         </div>
         <div>
           <h3>Keys and pads</h3>
-          <p>In keyboard mode every note plays the sound at its pitch. In pad
-          mode sixteen pads each hold a sound and a pitch of their own, with
-          mute groups as on an MPC.</p>
-        </div>
-        <div>
-          <h3>App and Audio Unit</h3>
-          <p>A Mac app with an on-screen keyboard and pads, and an Audio Unit
-          instrument with the same window. Play either from a MIDI keyboard or
-          controller.</p>
+          <p>In keyboard mode every note strikes the sound at its pitch. In pad
+          mode notes 36–51 hit sixteen pads, each with a sound, a pitch and a
+          group of its own; the pads of a group are one drum, played by one
+          pair of hands. Send to pad turns a sound made on the keyboard into a
+          pad.</p>
         </div>
         <div>
           <h3>Presets, kits and MIDI learn</h3>
           <p>Save a sound as a preset and all sixteen pads as a kit; the app
-          and the plug-in share them. Every knob follows a MIDI controller and
-          learns a new one with a click.</p>
+          and the plug-in share them. Two LFOs and the velocity move the knobs
+          by amounts set on the knobs themselves. Every knob and switch follows
+          a MIDI controller and learns a new one with a click.</p>
+        </div>
+        <div>
+          <h3>App and Audio Unit</h3>
+          <p>A Mac app with an on-screen keyboard and pads, and an Audio Unit
+          instrument with the same window for Logic Pro, Ableton Live and other
+          hosts, installed from the app. The app tells you when a new version
+          is out and installs it only with your OK.</p>
         </div>
       </div>
     </div>
@@ -84,8 +106,9 @@
     <div class="wrap grid">
       <div>
         <h2>Download</h2>
-        <p>The disk image is signed and notarized by Apple, so it opens without
-        security warnings. Drag Fanfrnoch to Applications.</p>
+        <p>Fanfrnoch needs macOS 26 or later. The disk image is signed and
+        notarized by Apple, so it opens without security warnings. Drag
+        Fanfrnoch to Applications.</p>
         <div class="actions">
           <a class="button" href="https://github.com/jiripisa/fanfrnoch/releases/download/v1.0.0/Fanfrnoch-1.0.0.dmg">Download version 1.0.0</a>
         </div>
@@ -93,7 +116,8 @@
       </div>
       <div>
         <h2>Build from source</h2>
-        <p>You need the Xcode command line tools; no Xcode project is involved.</p>
+        <p>You need Xcode, for the tool that compiles the app icon; no Xcode
+        project is involved.</p>
 <pre><code>git clone https://github.com/jiripisa/fanfrnoch.git
 cd fanfrnoch
 ./run.sh</code></pre>

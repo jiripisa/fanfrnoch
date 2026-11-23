@@ -4,7 +4,7 @@ import FanfrnochCore
 /// The bottom of the panel, the same in the app's window and in the
 /// plug-in's; it follows the mode.
 ///
-/// - Keyboard: the khomus over an ornament band, "Keyboard", the last note
+/// - Keyboard: the drum over an ornament band, "Keyboard", the last note
 ///   played, the "Send to pad" button (`SendToPadView`) and the keys
 ///   (`KeyboardStripView`).
 /// - Pads: the sixteen pads on the left (`PadGridView`) and the selected
@@ -48,7 +48,7 @@ public struct ModeFooterView: View {
                     .padding(.leading, 6)
                 ZStack {
                     OrnamentBand()
-                    KhomusView()
+                    DrumView()
                 }
                 .frame(maxWidth: .infinity)
                 lastNote
@@ -104,21 +104,21 @@ public struct ModeFooterView: View {
     }
 }
 
-/// The silver khomus, its transparent margins cropped: the artwork is a
+/// The fanfrnoch, its transparent margins cropped: the artwork is a
 /// square with the harp lying across its middle.
-struct KhomusView: View {
+struct DrumView: View {
 
     /// The harp's width for its height, as it lies in the artwork.
     private static let aspect: CGFloat = 2.6
 
     var body: some View {
-        if let khomus = Artwork.khomus {
+        if let drum = Artwork.drum {
             // A box of the harp's proportions; the square, as wide as the box, overflows it
             // above and below, where the artwork is empty.
             Color.clear
                 .aspectRatio(Self.aspect, contentMode: .fit)
                 .overlay {
-                    Image(nsImage: khomus).resizable().interpolation(.high).scaledToFill()
+                    Image(nsImage: drum).resizable().interpolation(.high).scaledToFill()
                 }
                 .clipped()
                 // Only a picture: its square, cropped for the eye but not for the mouse, would

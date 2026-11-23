@@ -84,7 +84,7 @@ public struct InstrumentPanel<Footer: View, Trailing: View>: View {
 }
 
 /// The engraved diamond band, repeated across the panel (and behind the
-/// khomus in the footer); nothing where the artwork is missing.
+/// drum in the footer); nothing where the artwork is missing.
 struct OrnamentBand: View {
 
     private static let height: CGFloat = 12

@@ -87,25 +87,25 @@ struct PresetLibraryTests {
     func collision() throws {
         let library = Self.library()
         defer { remove(library) }
-        try library.save(SetState(program: 0, values: [:]), as: "Drone")
-        try library.save(try sound(), as: "drone")
-        #expect(library.names() == ["drone"])
-        #expect(try library.load("DRONE").values["pot"] == 777)
-        #expect(PresetLibrary.name("dRoNe ", isAmong: library.names()))
-        #expect(!PresetLibrary.name("drones", isAmong: library.names()))
+        try library.save(SetState(program: 0, values: [:]), as: "Growl")
+        try library.save(try sound(), as: "growl")
+        #expect(library.names() == ["growl"])
+        #expect(try library.load("GROWL").values["pot"] == 777)
+        #expect(PresetLibrary.name("gRoWl ", isAmong: library.names()))
+        #expect(!PresetLibrary.name("growls", isAmong: library.names()))
     }
 
     @Test("A save in other capitals whose rename fails keeps the new sound under the old capitals, and says why")
     func collisionWhoseRenameFails() throws {
         var library = Self.library()
         defer { remove(library) }
-        try library.save(SetState(program: 0, values: [:]), as: "Drone")
+        try library.save(SetState(program: 0, values: [:]), as: "Growl")
         let sound = try sound()
         library.rename = { _, _ in throw CocoaError(.fileWriteNoPermission) }
-        #expect(throws: CocoaError(.fileWriteNoPermission)) { try library.save(sound, as: "drone") }
-        #expect(library.names() == ["Drone"])
-        #expect(try library.load("Drone").values["pot"] == 777)
-        #expect(try FileManager.default.contentsOfDirectory(atPath: library.folder.path) == ["Drone.fanfrnoch"])   // nothing left aside
+        #expect(throws: CocoaError(.fileWriteNoPermission)) { try library.save(sound, as: "growl") }
+        #expect(library.names() == ["Growl"])
+        #expect(try library.load("Growl").values["pot"] == 777)
+        #expect(try FileManager.default.contentsOfDirectory(atPath: library.folder.path) == ["Growl.fanfrnoch"])   // nothing left aside
     }
 
     @Test("Deleting takes the preset out of the folder; one that is not there cannot be deleted or read")

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>Fanfrnoch</string>
+    <key>CFBundleIdentifier</key>
+    <string>io.jp4.fanfrnoch.audiounit</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>Fanfrnoch</string>
+    <key>CFBundlePackageType</key>
+    <string>BNDL</string>
+    <!-- build.sh copies both version strings and the numeric AudioComponents
+         version from the app's Info.plist; do not edit them here. -->
+    <key>CFBundleShortVersionString</key>
+    <string>0.0.0</string>
+    <key>CFBundleVersion</key>
+    <string>0.0.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>26.0</string>
+    <!-- type / subtype / manufacturer are the plug-in's permanent identity
+         (Sources/FanfrnochAU/include/FanfrnochAU.h). Hosts find saved
+         projects by them: never change them. -->
+    <key>AudioComponents</key>
+    <array>
+        <dict>
+            <key>type</key>
+            <string>aumu</string>
+            <key>subtype</key>
+            <string>Fanf</string>
+            <key>manufacturer</key>
+            <string>JPis</string>
+            <key>name</key>
+            <string>Jiri Pisa: Fanfrnoch</string>
+            <key>description</key>
+            <string>Fanfrnoch</string>
+            <key>factoryFunction</key>
+            <string>FanfrnochAUFactory</string>
+            <key>version</key>
+            <integer>0</integer>
+            <key>sandboxSafe</key>
+            <true/>
+            <key>tags</key>
+            <array>
+                <string>Synthesizer</string>
+            </array>
+        </dict>
+    </array>
+</dict>
+</plist>

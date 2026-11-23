@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fanfrnoch Manual</title>
+<meta name="description" content="The Fanfrnoch manual: every control, with marked screenshots.">
+<link rel="alternate" hreflang="en" href="https://jiripisa.github.io/fanfrnoch/manual.html">
+<link rel="alternate" hreflang="cs" href="https://jiripisa.github.io/fanfrnoch/cs/manual.html">
+<link rel="alternate" hreflang="x-default" href="https://jiripisa.github.io/fanfrnoch/manual.html">
+<link rel="icon" href="assets/icon.png">
+<link rel="stylesheet" href="assets/site.css">
+<link rel="stylesheet" href="assets/manual.css">
+</head>
+<body>
+
+<header class="wrap masthead">
+  <a class="brand" href="index.html"><img src="assets/icon.png" alt="" width="32" height="32">Fanfrnoch</a>
+  <nav aria-label="Site">
+    <a href="index.html">Overview</a>
+    <a href="manual.html" aria-current="page">Manual</a>
+    <a href="index.html#get">Download</a>
+    <a class="lang" href="cs/manual.html" hreflang="cs" lang="cs">Česky</a>
+  </nav>
+</header>
+
+<main>
+  <div class="wrap title">
+    <h1>Manual</h1>
+    <p>Every control of Fanfrnoch 1.0.0, where to find it and what it does.
+    The frames in the screenshots mark the control the text talks about.</p>
+  </div>
+
+  <div class="wrap layout">
+    <nav class="toc" aria-label="Contents">
+      <p>Contents</p>
+      <ol>
+        <li><a href="#start">Getting started</a></li>
+        <li><a href="#window">The main window</a></li>
+        <li><a href="#header">The header</a></li>
+        <li><a href="#knobs">Knobs and switches</a>
+          <ol>
+            <li><a href="#reed">Reed</a></li>
+            <li><a href="#stroke">Stroke</a></li>
+            <li><a href="#mouth">Mouth</a></li>
+            <li><a href="#breath">Breath</a></li>
+            <li><a href="#master">Master</a></li>
+          </ol>
+        </li>
+        <li><a href="#keyboard">Keyboard mode</a></li>
+        <li><a href="#pads">Pad mode</a></li>
+        <li><a href="#send">Send to pad</a></li>
+        <li><a href="#presets">Presets</a></li>
+        <li><a href="#kits">Kits</a></li>
+        <li><a href="#amounts">LFO and VEL amounts</a></li>
+        <li><a href="#midi">MIDI controllers</a></li>
+        <li><a href="#settings">Settings</a></li>
+        <li><a href="#plugin">The Audio Unit plug-in</a></li>
+        <li><a href="#updates">Updates</a></li>
+      </ol>
+    </nav>
+
+    <article>
+      <section id="start">
+        <h2>Getting started</h2>
+        <ol>
+          <li>Download the disk image from the <a href="index.html#get">download page</a>
+          and open it.</li>
+          <li>Drag <b>Fanfrnoch</b> to <b>Applications</b> and start it from there.</li>
+          <li>Click a key of the keyboard at the bottom of the window. Near the top of a key the hit is soft, further down it is firmer. A MIDI keyboard plays it too: the app listens to every connected MIDI device until you choose one.</li>
+          <li>The sound goes to the macOS output. To choose another device, or one MIDI device or channel, click the gear at the right of the header (<span class="ui">Settings</span>; see <a href="#settings">Settings</a>).</li>
+          <li>To play Fanfrnoch in a host such as Logic Pro or Ableton Live, open <span class="ui">Settings</span> and click <span class="ui">Install Audio Unit</span> (see <a href="#plugin">The Audio Unit plug-in</a>).</li>
+        </ol>
+        <p>The app remembers the sound between launches: the keyboard's knobs, all sixteen pads, the mode, the selected pad and the preset each sound came from. It also keeps your MIDI controllers (see <a href="#midi">MIDI controllers</a>).</p>
+      </section>
+
+      <section id="window">
+        <h2>The main window</h2>
+        <figure class="fig">
+          <div class="view" style="--iw:2200;--ih:1410">
+            <img src="assets/fanfrnoch-window.png" alt="The Fanfrnoch window in keyboard mode with its areas marked">
+            <div class="mark" style="--x:18.9;--y:1.8;--w:13.6;--h:6.2"><b>1</b></div>
+            <div class="mark" style="--x:33.5;--y:1.8;--w:13.6;--h:6.2"><b>2</b></div>
+            <div class="mark" style="--x:53.6;--y:3.0;--w:11.1;--h:3.8"><b>3</b></div>
+            <div class="mark" style="--x:67.3;--y:2.8;--w:20.5;--h:4.1"><b>4</b></div>
+            <div class="mark" style="--x:88.3;--y:2.8;--w:6.2;--h:4.1"><b>5</b></div>
+            <div class="mark" style="--x:95.4;--y:2.8;--w:3.9;--h:4.1"><b>6</b></div>
+            <div class="mark" style="--x:0.9;--y:12.8;--w:98.2;--h:52.8"><b>7</b></div>
+            <div class="mark" style="--x:81.1;--y:70.6;--w:5.9;--h:6.4"><b>8</b></div>
+            <div class="mark" style="--x:87.8;--y:71.6;--w:10.2;--h:4.4"><b>9</b></div>
+            <div class="mark" style="--x:1.6;--y:80.4;--w:96.8;--h:17.3"><b>10</b></div>
+          </div>
+          <figcaption>The window in keyboard mode with the preset Night drone, after the key C3 was played.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>Program</dt>
+          <dd>Loads one of the seven built-in sounds into the knobs (see <a href="#header">The header</a>).</dd>
+          <dt><span class="n">2</span>Preset</dt>
+          <dd>Your own sounds, saved as files: load one into the knobs, save the knobs as one, delete one (see <a href="#presets">Presets</a>).</dd>
+          <dt><span class="n">3</span>Keyboard | Pads</dt>
+          <dd>The mode: the keys play one sound at their pitch, or notes 36–51 hit sixteen pads that each hold a sound of their own (see <a href="#keyboard">Keyboard mode</a> and <a href="#pads">Pad mode</a>).</dd>
+          <dt><span class="n">4</span>LFO 1, LFO 2, VEL</dt>
+          <dd>Turn the knobs into the amounts by which an LFO or the velocity of a hit moves them (see <a href="#amounts">LFO and VEL amounts</a>).</dd>
+          <dt><span class="n">5</span>MIDI</dt>
+          <dd>Shows which MIDI controller moves each knob and switch, and lets them learn new ones (see <a href="#midi">MIDI controllers</a>).</dd>
+          <dt><span class="n">6</span>Settings</dt>
+          <dd>MIDI input, audio output and the Audio Unit installer. Only the app has it.</dd>
+          <dt><span class="n">7</span>Reed, Stroke, Mouth, Breath, Master</dt>
+          <dd>The knobs and switches of the sound, in five groups (see <a href="#knobs">Knobs and switches</a>). In keyboard mode they show the keyboard's sound, in pad mode the selected pad's.</dd>
+          <dt><span class="n">8</span>Last note</dt>
+          <dd>The last note played in keyboard mode, C2 before any. It is the pitch <span class="ui">Send to pad</span> gives a pad.</dd>
+          <dt><span class="n">9</span>Send to pad</dt>
+          <dd>Copies the keyboard's sound to one of the pads (see <a href="#send">Send to pad</a>).</dd>
+          <dt><span class="n">10</span>Keyboard</dt>
+          <dd>Three octaves, C2 to B4. Click a key to play it: at the top of a key the hit has velocity 40, at the bottom 127. Dragging onto another key does not play it. In pad mode the pads take this place.</dd>
+        </dl>
+      </section>
+
+      <section id="header">
+        <h2>The header</h2>
+        <dl class="controls">
+          <dt>Program</dt>
+          <dd>The seven built-in programs. A program sets every knob, switch and amount of the sound the knobs show, except <span class="ui">Octave</span>: in keyboard mode the keyboard's sound, in pad mode the selected pad's. The program in use is ticked.
+            <ul>
+              <li><b>Fanfrnoch</b>: the defaults, a long ring with the Vowel rising after each pluck.</li>
+              <li><b>Molln</b>: the Alpine jaw harp, a long calm ring with the mouth held still.</li>
+              <li><b>Khomus</b>: the Sakha khomus, buzzing, with a slow turn of the mouth there and back.</li>
+              <li><b>Morsing</b>: the short Indian morsing, a quick twang with a puff of breath and a closing mouth.</li>
+              <li><b>Đàn Môi</b>: the Vietnamese harp, plucked outward only, with an open, airy mouth.</li>
+              <li><b>Bamboo</b>: a thin, bright, clanging bamboo tongue.</li>
+              <li><b>Genggong</b>: the Indonesian genggong, short and clangy, the mouth wide open.</li>
+            </ul>
+          </dd>
+          <dt>Preset</dt>
+          <dd>Your presets, the sounds you have saved. Like Program, it works on the sound the knobs show. Its title is the preset that sound came from, or “—” (see <a href="#presets">Presets</a>).</dd>
+          <dt>Keyboard | Pads</dt>
+          <dd>Switches between the two modes. The switch is not a sound setting: changing it keeps every sound as it is.</dd>
+          <dt>LFO 1, LFO 2, VEL</dt>
+          <dd>One of these three and MIDI can be on at a time. While one of the three is on, the knobs set that source's amounts; click it again to get the knobs back (see <a href="#amounts">LFO and VEL amounts</a>).</dd>
+          <dt>MIDI</dt>
+          <dd>While it is on, every knob and switch of the keyboard's sound shows its MIDI controller instead of its value, and a click makes it learn a new one; click MIDI again to get the values back (see <a href="#midi">MIDI controllers</a>). The button's secondary-click menu gives every control its standard controller back.</dd>
+          <dt>Settings (the gear)</dt>
+          <dd>Opens <a href="#settings">Settings</a>. The plug-in's window has no gear: there MIDI and audio come from the host.</dd>
+        </dl>
+        <p>When a preset or a kit cannot be saved, loaded or deleted, for example because its file was removed in the Finder or is damaged, a one-line message says so under the Program and Preset menus for four seconds. Nothing else changes.</p>
+      </section>
+
+      <section id="knobs">
+        <h2>Knobs and switches</h2>
+        <figure class="fig">
+          <div class="view" style="--iw:2200;--ih:1410;--zx:0;--zy:12;--zw:38;--zh:54">
+            <img src="assets/fanfrnoch-window.png" alt="The Reed and Stroke groups: knobs and two switches">
+            <div class="mark" style="--x:1.6;--y:19.7;--w:6.7;--h:12.1"><b>1</b></div>
+            <div class="mark" style="--x:24.5;--y:22.4;--w:12.5;--h:6.6"><b>2</b></div>
+          </div>
+          <figcaption>Reed and Stroke: <span class="n">1</span> a knob, <span class="n">2</span> a switch.</figcaption>
+        </figure>
+        <p>A knob <span class="n">1</span> shows its name above it and its value below it; the cyan arc shows where it stands. Drag a knob up or down: 200 points of travel turn it from end to end. Hold <kbd>Shift</kbd> while dragging for steps ten times finer. Double-click a knob to take it back to its value in the preset the sound came from or, without one, in the program last loaded. A switch <span class="n">2</span> shows its choices side by side; click one. The LFO shapes, which have more choices, are menus.</p>
+        <p>The ranges and defaults below are those of the program Fanfrnoch.</p>
+
+        <h3 id="reed">Reed</h3>
+        <p>The metal tongue and how it strikes the frame.</p>
+        <dl class="controls">
+          <dt>Ring (0.3–15 s, default 4 s)</dt>
+          <dd>How long the reed rings after a pluck: the time it takes to fall by 60 dB.</dd>
+          <dt>Edge (3–40, default 18)</dt>
+          <dd>How sharply the reed's tip passes the frame. Higher values reach further up the harmonics and sound brighter and harder.</dd>
+          <dt>Offset (−2 to +2, default +0.2)</dt>
+          <dd>How far the reed sits off the middle of the gap. The further from 0, the stronger the even harmonics.</dd>
+          <dt>Body (−48 to 0 dB, default −24 dB)</dt>
+          <dd>The level of the reed's own tone, the fundamental, under the twang.</dd>
+          <dt>Buzz (0–100 %, default 40 %)</dt>
+          <dd>The raw buzz of the reed passing the frame, mixed in beside the mouth's resonances. More Buzz is rawer; less lets the mouth speak.</dd>
+          <dt>Clang (0–100 %, default 10 %)</dt>
+          <dd>The metallic clang at the start of a hard pluck, which dies within a few tens of milliseconds.</dd>
+        </dl>
+
+        <h3 id="stroke">Stroke</h3>
+        <p>How the finger plucks the reed and stops it.</p>
+        <dl class="controls">
+          <dt>Vel Sens (0–100 %, default 70 %)</dt>
+          <dd>How much the velocity changes the stroke itself. A softer hit swings the reed less, by 1 − Vel Sens × (1 − velocity), and its puff of breath with it, so it is quieter, darker and less breathy. At 0 every hit is as strong as the hardest.</dd>
+          <dt>Stroke (Out, In, Alternate; default Alternate)</dt>
+          <dd>The direction of the pluck. <b>Alternate</b> changes direction from one pluck to the next: per note in keyboard mode, per mute group in pad mode (see <a href="#pads">Pad mode</a>).</dd>
+          <dt>Damp (2–80 ms, default 10 ms)</dt>
+          <dd>How fast a ringing reed is stopped: the time it takes to fall by 40 dB. A reed is stopped when its note is struck again, when a pad of its mute group is hit, and on Key Up = Damp.</dd>
+          <dt>Key Up (Ring, Damp; default Ring)</dt>
+          <dd>What letting go of a key or a pad does. <b>Ring</b> lets the reed ring out; <b>Damp</b> stops it in the <span class="ui">Damp</span> time.</dd>
+          <dt>Vary (0–100 %, default 20 %)</dt>
+          <dd>A random difference between one pluck and the next, as a hand never plucks twice alike. At 100 % the strength of a pluck varies by up to 15 %, the Offset by up to 0.3, the Vowel by up to 3 semitones and the Sweep Time by up to 20 %.</dd>
+        </dl>
+
+        <h3 id="mouth">Mouth</h3>
+        <p>The player's mouth, which picks out the overtones that sing. Moving it is what makes the melody of a jaw harp.</p>
+        <dl class="controls">
+          <dt>Vowel (500–3300 Hz, default 800 Hz)</dt>
+          <dd>Where the mouth's resonance stands at the pluck: the overtone near this frequency sings out. The pitch bend wheel moves it (see <a href="#keyboard">Keyboard mode</a>).</dd>
+          <dt>Sweep (−24 to +24 st, default +14 st)</dt>
+          <dd>How far the mouth moves the Vowel after each pluck, in semitones; negative values move it down.</dd>
+          <dt>Sweep Time (10–2000 ms, default 160 ms)</dt>
+          <dd>How long that movement takes.</dd>
+          <dt>Curve (Glide, Line, There and Back, Step; default Glide)</dt>
+          <dd>The path of the movement. <b>Glide</b> moves fast at first and settles gently; <b>Line</b> moves at an even pace; <b>There and Back</b> goes out and returns to where it started within the Sweep Time; <b>Step</b> jumps halfway through it.</dd>
+          <dt>Reso (4–40, default 15)</dt>
+          <dd>How sharp the mouth's resonance is (its Q). High values pick out a narrower band, so the singing overtone stands out more.</dd>
+          <dt>Throat (−30 to 0 dB, default −10 dB)</dt>
+          <dd>The level of the throat's resonance, a second, lower band beside the Vowel's.</dd>
+          <dt>Throat Tune (250–700 Hz, default 430 Hz)</dt>
+          <dd>Where the throat's resonance stands.</dd>
+          <dt>Open (0–100 %, default 30 %)</dt>
+          <dd>How open the lips are. More open is brighter, and the throat's band grows wider and higher.</dd>
+          <dt>Close (0–100 %, default 0 %)</dt>
+          <dd>How far the lips close: at 100 % the Vowel's resonance is shut. The mod wheel adds to it.</dd>
+        </dl>
+
+        <h3 id="breath">Breath</h3>
+        <p>Air through the instrument, which the reed chops into bursts.</p>
+        <dl class="controls">
+          <dt>Breath (−100 to +100 %, default +30 %)</dt>
+          <dd>A steady breath through the gap while the reed rings. Negative values draw the air in, which changes the colour of the buzz. Aftertouch adds to it.</dd>
+          <dt>Puff (0–100 %, default 30 %)</dt>
+          <dd>The burst of breath that comes with each pluck. A softer hit puffs less, as <span class="ui">Vel Sens</span> says.</dd>
+          <dt>Puff Time (20–1000 ms, default 120 ms)</dt>
+          <dd>How long that burst lasts.</dd>
+          <dt>Air (0–100 %, default 10 %)</dt>
+          <dd>The hiss of air in the gap. It fades away with the reed.</dd>
+        </dl>
+
+        <h3 id="master">Master</h3>
+        <dl class="controls">
+          <dt>Volume (−40 to +6 dB, default 0 dB)</dt>
+          <dd>The level of the sound. The programs are balanced for 0 dB.</dd>
+          <dt>Pan (−100 to +100 %, default 0)</dt>
+          <dd>Left or right in the stereo output. Useful for placing pads apart.</dd>
+          <dt>Tune (−100 to +100 ct, default 0)</dt>
+          <dd>Fine tuning in cents.</dd>
+          <dt>Octave (−2 to +2, default 0)</dt>
+          <dd>Moves the sound by octaves. At 0 a note sounds at its own pitch: C2 (note 36) is 65.4 Hz. Programs leave this knob where it is.</dd>
+          <dt>Bend&gt;Vowel (0–24 st, default 12 st)</dt>
+          <dd>How far the pitch bend wheel moves the Vowel: at the wheel's ends, this many semitones up or down.</dd>
+          <dt>LFO 1 Rate, LFO 2 Rate (0.02–20 Hz, defaults 6 Hz and 2 Hz)</dt>
+          <dd>How often each LFO goes round. What an LFO moves, and how far, is set on the knobs themselves (see <a href="#amounts">LFO and VEL amounts</a>).</dd>
+          <dt>LFO 1 Shape, LFO 2 Shape (Sine, Triangle, Ramp Up, Ramp Down, Square, Steps, Wander; default Sine)</dt>
+          <dd>The shape of each LFO's cycle. Sine and Triangle sway; the ramps rise or fall and jump back; Square switches between two places; Steps takes a new random place every cycle and holds it; Wander takes one and moves there smoothly.</dd>
+          <dt>LFO Start (Hit, Free; default Hit)</dt>
+          <dd><b>Hit</b> starts both LFOs anew with every hit, so the same hit always moves the knobs the same way. <b>Free</b> lets them run on, and each hit joins them where they are.</dd>
+        </dl>
+      </section>
+
+      <section id="keyboard">
+        <h2>Keyboard mode</h2>
+        <p>Every MIDI note, and every key on the screen, plays the keyboard's sound at the note's pitch. That sound is what the knobs show in this mode.</p>
+        <ul>
+          <li><b>One voice per note.</b> Striking a note again stops its own ringing reed (in its <span class="ui">Damp</span> time) and plucks anew. Different notes ring over each other.</li>
+          <li>A ringing note follows the knobs: turn one and you hear the change at once. Ring, Vel Sens, Stroke, Vary, Tune and Octave are the exception; they count from the next hit.</li>
+          <li>Sixteen voices sound at most, pads included. A seventeenth hit stops the quietest voice within a few milliseconds.</li>
+        </ul>
+        <dl class="controls">
+          <dt>Velocity</dt>
+          <dd>Shapes the stroke as <span class="ui">Vel Sens</span> says, and moves the knobs that have a VEL amount (see <a href="#amounts">LFO and VEL amounts</a>).</dd>
+          <dt>Pitch bend</dt>
+          <dd>Moves the Vowel, not the pitch: by up to <span class="ui">Bend&gt;Vowel</span> semitones either way.</dd>
+          <dt>Mod wheel (CC 1)</dt>
+          <dd>Closes the lips: adds up to the whole travel of <span class="ui">Close</span>.</dd>
+          <dt>Aftertouch (channel pressure)</dt>
+          <dd>Adds breath: up to half the travel of <span class="ui">Breath</span>.</dd>
+        </dl>
+        <p>The wheels act on the keyboard's sound only; ringing pads do not follow them. Reset All Controllers (CC 121) puts all three back to rest, and All Notes Off (CC 123) stops every voice in its <span class="ui">Damp</span> time.</p>
+        <p>Other MIDI controllers turn the knobs and switches themselves (see <a href="#midi">MIDI controllers</a>).</p>
+      </section>
+
+      <section id="pads">
+        <h2>Pad mode</h2>
+        <figure class="fig">
+          <div class="view" style="--iw:2200;--ih:1410">
+            <img src="assets/manual/pads.png" alt="The Fanfrnoch window in pad mode with pad 05 selected">
+            <div class="mark" style="--x:0.9;--y:67.0;--w:61.8;--h:31.6"><b>1</b></div>
+            <div class="mark" style="--x:0.9;--y:75.2;--w:15.0;--h:7.4"><b>2</b></div>
+            <div class="mark" style="--x:63.6;--y:67.0;--w:35.5;--h:31.6"><b>3</b></div>
+            <div class="mark" style="--x:18.9;--y:1.8;--w:28.2;--h:6.2"><b>4</b></div>
+            <div class="mark" style="--x:53.6;--y:3.0;--w:11.1;--h:3.8"><b>5</b></div>
+          </div>
+          <figcaption>Pad mode with the default kit and pad 05 selected: the knobs show Morsing, the pad's own sound.</figcaption>
+        </figure>
+        <p>In pad mode <span class="n">5</span> the MIDI notes 36–51 (C2–D♯3) hit pads 1–16: note 36 is pad 1, note 37 pad 2, and so on, as on an MPC or in an Ableton Drum Rack. Other notes are ignored. Each pad holds a sound of its own, frozen with it, and plays it at a pitch of its own, whatever note hits it.</p>
+        <dl class="controls">
+          <dt><span class="n">1</span>The pads</dt>
+          <dd>Pad 1 is at the top left and the pads run row by row. Each shows its number and name above its pitch and its mute group (“C2 G1”; “Off” when it has none). A pad's name is that of the preset its sound came from or, without one, that of its program. A pad lights up when it is hit, from the screen or from MIDI.</dd>
+          <dt><span class="n">2</span>Selecting and playing a pad</dt>
+          <dd>Click a pad to play it and select it; the selected pad has a cyan outline. As on the keys, near the top the hit is soft and further down it is firmer. The pad is held until you let go of the mouse button, which matters for Key Up = Damp.</dd>
+          <dt>Editing a pad</dt>
+          <dd>The knobs show the selected pad's sound, and turning them changes that pad only. <span class="n">4</span> <span class="ui">Program</span> and <span class="ui">Preset</span> load into the selected pad. The keyboard's sound is left alone, and so are the other pads.</dd>
+          <dt><span class="n">3</span>Pitch and group</dt>
+          <dd>Beside the pads: which pad is selected, its pitch and its mute group (see below), and the Kit menu (see <a href="#kits">Kits</a>).</dd>
+        </dl>
+        <p>A pad's hit uses the pad's sound as it stood at the hit: turning a knob changes the next hit, not one that rings. Pads ring over each other unless their group stops them.</p>
+
+        <h3>Pitch and group</h3>
+        <figure class="fig">
+          <div class="view" style="--iw:812;--ih:476">
+            <img src="assets/manual/pad-inspector.png" alt="The pad inspector: the selected pad, its pitch, its group and the Kit menu">
+            <div class="mark" style="--x:37.6;--y:70.4;--w:42.5;--h:9.5"><b>1</b></div>
+            <div class="mark" style="--x:11.7;--y:81.9;--w:26.7;--h:10.9"><b>2</b></div>
+            <div class="mark" style="--x:41.6;--y:81.9;--w:26.1;--h:10.9"><b>3</b></div>
+            <div class="mark" style="--x:70.9;--y:81.9;--w:17.0;--h:10.9"><b>4</b></div>
+          </div>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>Selected</dt>
+          <dd>The number and name of the selected pad.</dd>
+          <dt><span class="n">2</span>Pitch</dt>
+          <dd>The note the pad plays, from C-1 to G9, chosen in submenus by octave. The pad's <span class="ui">Octave</span> and <span class="ui">Tune</span> still apply.</dd>
+          <dt><span class="n">3</span>Group</dt>
+          <dd>The pad's mute group: <b>Off</b> or 1–16. Pitch and group belong to the pad, not to its sound: loading a program or a preset leaves them alone.</dd>
+          <dt><span class="n">4</span>Kit</dt>
+          <dd>Loads, saves and deletes kits: all sixteen pads at once (see <a href="#kits">Kits</a>).</dd>
+        </dl>
+
+        <h3>Mute groups</h3>
+        <p>Mute groups work as on an MPC. A hit stops the ringing reeds of every pad in its group, whatever their pitch, and always its own pad's previous hit. A pad whose group is <b>Off</b> stops only itself, so two such pads at the same pitch ring over each other. Each stopped reed falls in its own <span class="ui">Damp</span> time.</p>
+        <p>With <span class="ui">Stroke</span> = Alternate the direction alternates per group: the pads of a group pluck in turn like one harp. A pad with group Off alternates on its own.</p>
+
+        <h3 id="default-kit">The default kit</h3>
+        <p>On the first launch, and in every new plug-in instance, the pads hold this kit; <span class="ui">Kit › Default kit</span> brings it back. Pads 1 and 2 are one harp, the second ringing short; pads 9–16 repeat pads 1–8 a fifth higher, groups 1–4 becoming 5–8.</p>
+        <table>
+          <thead>
+            <tr><th>Pad</th><th>Program</th><th>Note</th><th>Group</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>01</td><td>Fanfrnoch</td><td>C2 (36)</td><td>1</td></tr>
+            <tr><td>02</td><td>Fanfrnoch, Ring 0.6 s</td><td>C2 (36)</td><td>1</td></tr>
+            <tr><td>03</td><td>Bamboo</td><td>D♯2 (39)</td><td>Off</td></tr>
+            <tr><td>04</td><td>Molln</td><td>G2 (43)</td><td>2</td></tr>
+            <tr><td>05</td><td>Morsing</td><td>C3 (48)</td><td>3</td></tr>
+            <tr><td>06</td><td>Khomus</td><td>D2 (38)</td><td>4</td></tr>
+            <tr><td>07</td><td>Đàn Môi</td><td>D♯2 (39)</td><td>Off</td></tr>
+            <tr><td>08</td><td>Genggong</td><td>F2 (41)</td><td>Off</td></tr>
+            <tr><td>09</td><td>Fanfrnoch</td><td>G2 (43)</td><td>5</td></tr>
+            <tr><td>10</td><td>Fanfrnoch, Ring 0.6 s</td><td>G2 (43)</td><td>5</td></tr>
+            <tr><td>11</td><td>Bamboo</td><td>A♯2 (46)</td><td>Off</td></tr>
+            <tr><td>12</td><td>Molln</td><td>D3 (50)</td><td>6</td></tr>
+            <tr><td>13</td><td>Morsing</td><td>G3 (55)</td><td>7</td></tr>
+            <tr><td>14</td><td>Khomus</td><td>A2 (45)</td><td>8</td></tr>
+            <tr><td>15</td><td>Đàn Môi</td><td>A♯2 (46)</td><td>Off</td></tr>
+            <tr><td>16</td><td>Genggong</td><td>C3 (48)</td><td>Off</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="send">
+        <h2>Send to pad</h2>
+        <figure class="fig">
+          <div class="view" style="--iw:988;--ih:686">
+            <img src="assets/manual/send-to-pad.png" alt="The Send to pad popover asking whether to replace pad 05">
+            <div class="mark" style="--x:6.3;--y:34.4;--w:21.7;--h:12.1"><b>1</b></div>
+            <div class="mark" style="--x:6.1;--y:72.9;--w:89.1;--h:17.8"><b>2</b></div>
+          </div>
+        </figure>
+        <p>Send to pad turns a sound made on the keyboard into a pad.</p>
+        <ol>
+          <li>In keyboard mode, set up the sound and play the note the pad should have. <span class="ui">Last note</span> beside the button shows it.</li>
+          <li>Click <span class="ui">Send to pad</span>. The sixteen pads appear with their names and pitches.</li>
+          <li>Click the pad to replace <span class="n">1</span>. Fanfrnoch asks <span class="n">2</span> whether to replace it, naming the pad and the pitch.</li>
+          <li>Click <span class="ui">Replace</span> (or press Return) to copy; <span class="ui">Cancel</span> (or Esc) keeps the pad as it was.</li>
+        </ol>
+        <p>The pad takes every knob, switch and amount of the keyboard's sound, its program, the preset it came from if any, and, as its pitch, the last note played (C2 if none was). It keeps its group.</p>
+      </section>
+
+      <section id="presets">
+        <h2>Presets</h2>
+        <p>A preset is one sound saved as a file: the program it started from and every knob, switch and amount, <span class="ui">Octave</span> included. You can load it into the keyboard or into any pad, as often as you like. A pad's pitch and group are not part of it.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:860;--ih:400">
+            <img src="assets/manual/preset-menu.png" alt="The Preset menu open, with Night drone ticked">
+            <div class="mark" style="--x:41.3;--y:14.5;--w:35.6;--h:13.5"><b>1</b></div>
+            <div class="mark" style="--x:40.9;--y:32.0;--w:35.3;--h:23.5"><b>2</b></div>
+            <div class="mark" style="--x:40.9;--y:62.0;--w:35.3;--h:10.5"><b>3</b></div>
+            <div class="mark" style="--x:40.9;--y:74.0;--w:35.3;--h:10.5"><b>4</b></div>
+          </div>
+          <figcaption>The Preset menu with two presets; the keyboard's sound came from Night drone.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>The Preset menu</dt>
+          <dd>In the header, beside Program. Its title is the preset the sound the knobs show came from, or “—”. The menu looks into the folder each time it opens, so a preset just saved by the plug-in in a host, or copied into the folder, is there.</dd>
+          <dt><span class="n">2</span>Loading a preset</dt>
+          <dd>Click a preset to load it into the sound the knobs show: the keyboard's in keyboard mode, the selected pad's in pad mode. The other sounds stay as they are. The preset in use is ticked.</dd>
+          <dt><span class="n">3</span>Save as…</dt>
+          <dd>Saves the sound the knobs show as a preset (see <a href="#saving">Saving a preset</a>).</dd>
+          <dt><span class="n">4</span>Delete</dt>
+          <dd>A submenu of your presets. Fanfrnoch asks “Delete “Night drone”? It goes to the Trash.”: <span class="ui">Delete</span> moves the file to the Trash, <span class="ui">Cancel</span> (or Return, or Esc) keeps it. A sound that came from the deleted preset keeps its knobs.</dd>
+        </dl>
+
+        <h3 id="saving">Saving a preset</h3>
+        <figure class="fig">
+          <div class="view" style="--iw:920;--ih:480">
+            <img src="assets/manual/name-popover.png" alt="The popover that names a new preset">
+            <div class="mark" style="--x:21.2;--y:46.5;--w:57.4;--h:11.5"><b>1</b></div>
+            <div class="mark" style="--x:21.2;--y:61.0;--w:54.0;--h:12.5"><b>2</b></div>
+            <div class="mark" style="--x:60.9;--y:76.3;--w:28.5;--h:11.5"><b>3</b></div>
+          </div>
+        </figure>
+        <ol>
+          <li>Set up the sound, then choose <span class="ui">Preset › Save as…</span>.</li>
+          <li>Type a name <span class="n">1</span>. The field starts with the name of the preset in use, if there is one. Under it Fanfrnoch says what is stored <span class="n">2</span>.</li>
+          <li>Click <span class="ui">Save</span> <span class="n">3</span> or press Return. <span class="ui">Cancel</span> or Esc saves nothing.</li>
+        </ol>
+        <p>A name can have up to 60 characters. Spaces at its ends are dropped, and “/” and “:” become “-”. If a preset of that name exists already (capitals do not count), Fanfrnoch asks “Replace “Night drone”?”: <span class="ui">Replace</span> saves over it, <span class="ui">Cancel</span> takes you back to the name. Sounds that came from the old version keep their knobs, but a double-click now takes a knob to the new version's value.</p>
+
+        <h3>The preset in use</h3>
+        <p>Each sound, the keyboard's and every pad's, remembers the preset it came from. The menu's title and its tick show it, a pad shows its name, and a double-click takes a knob back to the preset's value. Turning knobs keeps the link. Loading a program ends it, and the title shows “—” again; so does deleting the preset's file, after which a double-click goes to the program's value.</p>
+
+        <h3>Where presets are kept</h3>
+        <p>Each preset is a file named after it, with the extension <span class="ui">.fanfrnoch</span>, in <span class="ui">~/Library/Application Support/Fanfrnoch/Presets</span>. The app and the plug-in use the same folder, so a preset saved in one is in the other's menu too. You can copy the files to another Mac, or rename them in the Finder. Fanfrnoch makes the folder when you save your first preset.</p>
+      </section>
+
+      <section id="kits">
+        <h2>Kits</h2>
+        <p>A kit is all sixteen pads saved as one file: each pad's sound, pitch and mute group, and the preset each sound came from. Loading a kit replaces all sixteen pads at once; the keyboard's sound and the mode stay as they are.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:812;--ih:476">
+            <img src="assets/manual/kit-menu.png" alt="The Kit menu open beside the pads">
+            <div class="mark" style="--x:70.9;--y:81.9;--w:17.0;--h:10.9"><b>1</b></div>
+            <div class="mark" style="--x:66.0;--y:24.8;--w:32.5;--h:19.7"><b>2</b></div>
+            <div class="mark" style="--x:66.0;--y:49.6;--w:32.5;--h:9.2"><b>3</b></div>
+            <div class="mark" style="--x:66.0;--y:59.7;--w:32.5;--h:9.2"><b>4</b></div>
+            <div class="mark" style="--x:66.0;--y:69.8;--w:32.5;--h:9.2"><b>5</b></div>
+          </div>
+          <figcaption>The Kit menu in pad mode, with two kits.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>Kit</dt>
+          <dd>The menu beside the pads, in pad mode. No kit is ticked: once a kit is loaded, its pads are edited one by one.</dd>
+          <dt><span class="n">2</span>Your kits</dt>
+          <dd>Click one to load it into the pads. A pad whose preset is still in the Presets folder is linked to it again.</dd>
+          <dt><span class="n">3</span>Default kit</dt>
+          <dd>Brings back the kit Fanfrnoch starts with (see <a href="#default-kit">The default kit</a>).</dd>
+          <dt><span class="n">4</span>Save kit as…</dt>
+          <dd>Saves the sixteen pads as a kit. Naming works as for a preset (see <a href="#saving">Saving a preset</a>).</dd>
+          <dt><span class="n">5</span>Delete kit</dt>
+          <dd>A submenu of your kits. After you confirm, the kit's file goes to the Trash.</dd>
+        </dl>
+        <p>Kits are files with the extension <span class="ui">.fanfrnochkit</span> in <span class="ui">~/Library/Application Support/Fanfrnoch/Kits</span>, shared by the app and the plug-in like presets.</p>
+      </section>
+
+      <section id="amounts">
+        <h2>LFO and VEL amounts</h2>
+        <p>Two LFOs and the velocity of each hit can move the knobs for you. Every knob they can move has an amount for each of them: how far that source moves it, as a part of the knob's travel, from −100 to +100 %. The amounts belong to the sound, like the knobs, so every pad has its own. They all start at 0, in every program.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:2200;--ih:1410">
+            <img src="assets/manual/lfo1-amounts.png" alt="The window with LFO 1 on: the knobs show the amounts of LFO 1">
+            <div class="mark" style="--x:67.3;--y:2.8;--w:6.6;--h:4.1"><b>1</b></div>
+            <div class="mark" style="--x:38.8;--y:19.7;--w:6.7;--h:12.1"><b>2</b></div>
+            <div class="mark" style="--x:1.6;--y:45.2;--w:6.7;--h:12.1"><b>3</b></div>
+            <div class="mark" style="--x:1.6;--y:19.7;--w:6.7;--h:12.1"><b>4</b></div>
+          </div>
+          <figcaption>LFO 1 on, with three amounts set as an example: Vowel +25 %, Close +20 % and Buzz −30 %.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt>Setting an amount</dt>
+          <dd>Click <span class="n">1</span> <span class="ui">LFO 1</span>, <span class="ui">LFO 2</span> or <span class="ui">VEL</span> in the header; the button lights up in its colour (LFO 1 cyan, LFO 2 bone, VEL silver). The knobs now show that source's amounts below them <span class="n">2</span>: drag a knob up for a positive amount, down for a negative one. An amount within 1 % of zero is zero. Double-click a knob to set its amount back to 0. Click the button again to get the knobs back.</dd>
+          <dt>Seeing it</dt>
+          <dd>A knob a source moves shows a thin arc in that source's colour inside its value arc <span class="n">3</span>, also when the buttons are off, so you see what is moving. The knob's pointer stays where you put it.</dd>
+          <dt>What steps back</dt>
+          <dd>Knobs and switches a source cannot move are dimmed while its button is on <span class="n">4</span>.</dd>
+        </dl>
+
+        <h3>LFOs</h3>
+        <p>An LFO swings a knob either way from where it stands, by its amount of the knob's travel, and never past the knob's ends. A negative amount turns the movement round. Both LFOs can move the same knob; their movements add up. The LFOs' rates, shapes and start are in <a href="#master">Master</a>; with <span class="ui">LFO Start</span> = Hit each voice starts its own LFOs with its hit.</p>
+        <p>The LFOs can move Vowel, Close, Breath, Open, Reso, Throat, Buzz, Body, Volume, Edge and Offset.</p>
+
+        <h3>VEL</h3>
+        <figure class="fig">
+          <div class="view" style="--iw:2200;--ih:1410">
+            <img src="assets/manual/vel-amounts.png" alt="The window with VEL on: the knobs show the velocity amounts">
+            <div class="mark" style="--x:82.0;--y:2.8;--w:5.7;--h:4.1"><b>1</b></div>
+            <div class="mark" style="--x:1.6;--y:19.7;--w:6.7;--h:12.1"><b>2</b></div>
+            <div class="mark" style="--x:38.8;--y:19.7;--w:6.7;--h:12.1"><b>3</b></div>
+            <div class="mark" style="--x:77.8;--y:19.7;--w:6.7;--h:12.1"><b>4</b></div>
+            <div class="mark" style="--x:17.8;--y:19.7;--w:6.7;--h:12.1"><b>5</b></div>
+          </div>
+          <figcaption>VEL on <span class="n">1</span>, with three amounts set as an example: <span class="n">2</span> Ring +40 %, <span class="n">3</span> Vowel −25 %, <span class="n">4</span> Volume +60 %. <span class="n">5</span> Vel Sens has no VEL amount.</figcaption>
+        </figure>
+        <p>The knob is where a hit at full velocity puts it. A softer hit moves it away by amount × (1 − velocity) of its travel, where velocity runs from 0 to 1 (MIDI 127 is 1). A positive amount means “the harder the hit, the higher the value”: with Ring at +40 %, a hit at half velocity stands the Ring knob 20 % of its travel lower, so soft hits ring shorter. A negative amount works the other way round. The velocity is fixed for the hit; LFO movements add to it.</p>
+        <p><b>Volume is the exception.</b> Its VEL amount scales the level instead, by 1 − amount × (1 − velocity): the classic velocity-to-level. At +100 % a hit at half velocity gets half the gain (−6 dB), on top of what <span class="ui">Vel Sens</span> does to the stroke; at 0 % the velocity changes the level only through <span class="ui">Vel Sens</span>.</p>
+        <p>The velocity can move Ring, Damp, Edge, Offset, Body, Buzz, Clang, Vary, Vowel, Sweep, Sweep Time, Reso, Throat, Throat Tune, Open, Close, Breath, Puff, Puff Time, Air, Volume, Pan, Tune, LFO 1 Rate and LFO 2 Rate. The switches, Octave, Bend&gt;Vowel and Vel Sens have no VEL amount: Vel Sens is the stroke itself.</p>
+      </section>
+
+      <section id="midi">
+        <h2>MIDI controllers</h2>
+        <p>Every knob and switch of the keyboard's sound can follow a MIDI controller (a CC): a knob, fader or pedal of your MIDI keyboard or controller. Each comes with a standard controller (see the table below), so a controller that sends those numbers works at once, and any of them can learn another.</p>
+        <figure class="fig">
+          <div class="view" style="--iw:2200;--ih:1410">
+            <img src="assets/manual/midi-learn.png" alt="The window with MIDI on: every control shows its controller, and Vowel is listening">
+            <div class="mark" style="--x:88.3;--y:2.8;--w:6.2;--h:4.1"><b>1</b></div>
+            <div class="mark" style="--x:1.6;--y:19.7;--w:6.7;--h:12.1"><b>2</b></div>
+            <div class="mark" style="--x:24.5;--y:22.4;--w:12.5;--h:6.6"><b>3</b></div>
+            <div class="mark" style="--x:38.8;--y:19.7;--w:6.7;--h:12.1"><b>4</b></div>
+          </div>
+          <figcaption>MIDI on: every control shows its controller, and Vowel waits for one.</figcaption>
+        </figure>
+        <dl class="controls">
+          <dt><span class="n">1</span>Showing the controllers</dt>
+          <dd>Click <span class="ui">MIDI</span> in the header; it lights up in silver. Each knob shows its controller below it instead of its value <span class="n">2</span>, and each switch in place of its choices <span class="n">3</span>: “CC 72”, or “—” for none. Click <span class="ui">MIDI</span> again to get the values back.</dd>
+          <dt><span class="n">4</span>Learning a controller</dt>
+          <dd>Click a knob or switch: a dashed ring appears and it says “move a control”. Move a knob or fader of your controller: the first controller that moves is taken, and the control goes where that controller stands. Click the control again to stop listening; turning MIDI off, changing the mode, switching to another app or closing the window stops it too.</dd>
+          <dt>The standard controller</dt>
+          <dd>Double-click a knob or switch to give it its standard controller back.</dd>
+          <dt>The secondary-click menu</dt>
+          <dd>Control-click a knob or switch (or click it with two fingers): <span class="ui">No controller</span> leaves it without one, <span class="ui">Back to CC 72</span> (its standard number) gives the standard one back. <span class="ui">Every control back to its standard controller</span>, in this menu and in the <span class="ui">MIDI</span> button's, resets them all.</dd>
+        </dl>
+        <ul>
+          <li><b>One controller moves one control.</b> A controller learnt by one control is taken from the control that had it.</li>
+          <li>A controller puts its control where its value says: 0 is the bottom of the travel, 127 the top. On a knob whose middle is 0 (Offset, Sweep, Breath, Pan, Tune, Octave), 64 is exactly the middle. A switch spreads its choices over 0–127.</li>
+          <li>Controllers work on every MIDI channel; the app takes them on the channels chosen in <a href="#settings">Settings</a>.</li>
+          <li><b>Controllers move the keyboard's sound, in pad mode too.</b> The pads and the LFO and VEL amounts have none, so with MIDI on in pad mode the controls are dimmed and show “—”.</li>
+          <li>A ringing note follows a controller as it follows a turn of the knob (see <a href="#keyboard">Keyboard mode</a>), from its next control step, a few milliseconds later.</li>
+          <li>The controllers belong to the app or the plug-in, not to a sound: loading a program, a preset or a kit leaves them alone. The app keeps them in its settings, so they are there after a relaunch. The plug-in keeps them with the host's project, each instance its own.</li>
+          <li>In the plug-in, a knob a controller moves is reported to the host as if you had turned it.</li>
+        </ul>
+
+        <h3>The standard controllers</h3>
+        <p>Where General MIDI gives a controller a meaning that fits, the control takes it: Volume 7, Pan 10, Vowel 74 (brightness), Reso 71 (timbre), Ring 72 (release time), Breath 2 (breath controller) and Vel Sens 73 (attack time). The others take numbers that MIDI leaves undefined.</p>
+        <table>
+          <thead>
+            <tr><th>Control</th><th>CC</th><th>Control</th><th>CC</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Ring</td><td>72</td><td>Throat Tune</td><td>27</td></tr>
+            <tr><td>Edge</td><td>14</td><td>Open</td><td>28</td></tr>
+            <tr><td>Offset</td><td>15</td><td>Close</td><td>29</td></tr>
+            <tr><td>Body</td><td>16</td><td>Breath</td><td>2</td></tr>
+            <tr><td>Buzz</td><td>17</td><td>Puff</td><td>30</td></tr>
+            <tr><td>Clang</td><td>18</td><td>Puff Time</td><td>31</td></tr>
+            <tr><td>Vel Sens</td><td>73</td><td>Air</td><td>85</td></tr>
+            <tr><td>Stroke</td><td>19</td><td>Volume</td><td>7</td></tr>
+            <tr><td>Damp</td><td>20</td><td>Pan</td><td>10</td></tr>
+            <tr><td>Key Up</td><td>21</td><td>Tune</td><td>86</td></tr>
+            <tr><td>Vary</td><td>22</td><td>Octave</td><td>87</td></tr>
+            <tr><td>Vowel</td><td>74</td><td>Bend&gt;Vowel</td><td>88</td></tr>
+            <tr><td>Sweep</td><td>23</td><td>LFO Start</td><td>89</td></tr>
+            <tr><td>Sweep Time</td><td>24</td><td>LFO 1 Rate</td><td>90</td></tr>
+            <tr><td>Curve</td><td>25</td><td>LFO 1 Shape</td><td>102</td></tr>
+            <tr><td>Reso</td><td>71</td><td>LFO 2 Rate</td><td>103</td></tr>
+            <tr><td>Throat</td><td>26</td><td>LFO 2 Shape</td><td>104</td></tr>
+          </tbody>
+        </table>
+        <p><b>Reserved controllers.</b> CC 0–1, 6, 32, 38, 64, 96–101 and 120–127 keep their meanings in MIDI (bank select, data entry, sustain, parameter numbers and the channel messages). No control is given one, and learning ignores them. CC 1 is the mod wheel, which moves Close (see <a href="#keyboard">Keyboard mode</a>); CC 121 puts the wheels back to rest, and CC 120 and 123 stop every voice.</p>
+        <p>Free to learn, with no meaning in Fanfrnoch: CC 3–5, 8, 9, 11–13, 33–37, 39–63, 65–70, 75–84, 91–95 and 105–119.</p>
+      </section>
+
+      <section id="settings">
+        <h2>Settings</h2>
+        <p>The gear in the header opens them. They belong to the app; the plug-in takes MIDI and audio from its host.</p>
+        <dl class="controls">
+          <dt>MIDI input › Device</dt>
+          <dd><b>All devices</b> (the default), <b>None</b>, or one connected keyboard or controller. A chosen device that is unplugged stays in the list as “not connected”; the app listens to it again as soon as it is back.</dd>
+          <dt>MIDI input › Channel</dt>
+          <dd><b>All channels</b> or one of 1–16; messages on other channels are ignored.</dd>
+          <dt>The “Fanfrnoch” MIDI port</dt>
+          <dd>While the app runs, other applications can send MIDI to a port called <b>Fanfrnoch</b>. It obeys the channel setting.</dd>
+          <dt>Audio output › Device</dt>
+          <dd><b>System default</b> or a specific audio device. System default follows the output chosen in macOS. A chosen device that is unplugged stays in the list as “not connected”, and the sound goes to the system default until it is back.</dd>
+          <dt>Audio output › Channels</dt>
+          <dd>Shown for a device with four or more outputs: the pair of channels the stereo sound goes to.</dd>
+          <dt>Audio Unit plug-in</dt>
+          <dd>Shows whether the plug-in is installed and in which version; <span class="ui">Install Audio Unit</span> installs or updates it.</dd>
+        </dl>
+      </section>
+
+      <section id="plugin">
+        <h2>The Audio Unit plug-in</h2>
+        <ol>
+          <li>In the app, open <span class="ui">Settings</span> and click <span class="ui">Install Audio Unit</span>. This copies <span class="ui">Fanfrnoch.component</span> into <span class="ui">~/Library/Audio/Plug-Ins/Components</span>.</li>
+          <li>Restart your host or let it rescan its plug-ins.</li>
+          <li>The instrument appears as <b>Fanfrnoch</b> by <b>Jiri Pisa</b> among the Audio Unit instruments.</li>
+        </ol>
+        <p>The plug-in's window is the app's, without the gear: the same header, knobs, keyboard, pads and Send to pad. The keys and pads on the screen play the plug-in directly.</p>
+        <dl class="controls">
+          <dt>Automation</dt>
+          <dd>The host sees 81 parameters: the keyboard's sound, that is its 34 knobs and switches, 22 LFO amounts and 25 VEL amounts. Turning a knob in keyboard mode can be recorded as automation, and automation moves the knobs. The pads, their pitches and groups and the mode are not parameters: automation reaches the keyboard's sound only.</dd>
+          <dt>Presets</dt>
+          <dd>The seven programs are the plug-in's factory presets; they load into the keyboard's sound. Your own presets are in the window's Preset menu, shared with the app (see <a href="#presets">Presets</a>). When one is loaded into the keyboard, the host shows its name as the plug-in's preset; choosing a factory preset in the host ends that link.</dd>
+          <dt>Saved with the project</dt>
+          <dd>The keyboard's sound and its program, the mode, all sixteen pads (sound, pitch and group), the preset each sound came from, the MIDI controllers and the selected pad. A pad edit marks the project as changed half a second after you stop, or when you close the window. The plug-in's window opens on the pad selected last. A project saved by an earlier version opens with the standard controllers and pad 01 selected.</dd>
+          <dt>Latency</dt>
+          <dd>Below 88.2 kHz Fanfrnoch runs its voices at twice the host's rate, which delays the sound by 29 samples (0.6 ms at 48 kHz). The plug-in reports this to the host, which compensates. From 88.2 kHz up the latency is 0.</dd>
+          <dt>Output</dt>
+          <dd>Stereo. On a mono track the plug-in mixes both sides into one, so pads panned hard right are still heard.</dd>
+        </dl>
+        <p>After updating the app, click <span class="ui">Install Audio Unit</span> again to update the plug-in.</p>
+      </section>
+
+      <section id="updates">
+        <h2>Updates</h2>
+        <p>At every launch Fanfrnoch asks whether a newer version exists and, if
+        so, offers it; nothing is installed without your OK. <span class="ui">Fanfrnoch
+        › Check for Updates…</span> asks right away.</p>
+      </section>
+    </article>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Fanfrnoch by Jiří Píša. MIT License. Manual for version 1.0.0.</span>
+    <span><a href="index.html">Overview</a></span>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -21,17 +21,17 @@ struct PresetFileTests {
     func tolerant() throws {
         let library = library()
         defer { remove(library) }
-        try write(#"{"values":{"vowel":50}}"#, as: "No program", in: library)
+        try write(#"{"values":{"pot":50}}"#, as: "No program", in: library)
         try write(#"{"program":3}"#, as: "No values", in: library)
         try write("{}", as: "Empty", in: library)
-        try write(#"{"program":2,"values":{"vowel":50,"from-the-future":1},"preset":"Old name","midi":[1,2],"colour":"aurora"}"#,
+        try write(#"{"program":2,"values":{"pot":50,"from-the-future":1},"preset":"Old name","midi":[1,2],"colour":"aurora"}"#,
                   as: "Future", in: library)
 
-        #expect(try library.load("No program") == SetState(program: 0, values: ["vowel": 50]))
+        #expect(try library.load("No program") == SetState(program: 0, values: ["pot": 50]))
         #expect(try library.load("No values") == SetState(program: 3, values: [:]))
         #expect(try library.load("Empty") == SetState(program: 0, values: [:]))
         let future = try library.load("Future")
-        #expect(future.program == 2 && future.values["vowel"] == 50 && future.preset == "Old name")
+        #expect(future.program == 2 && future.values["pot"] == 50 && future.preset == "Old name")
     }
 
     @Test("A file that is not JSON, or has a field of the wrong type, is an error, not a crash")
@@ -41,7 +41,7 @@ struct PresetFileTests {
         try write("not a preset", as: "Broken", in: library)
         try write("", as: "Blank", in: library)
         try write(#"{"program":"two"}"#, as: "Wrong type", in: library)
-        try write(#"{"values":{"vowel":"loud"}}"#, as: "Wrong value", in: library)
+        try write(#"{"values":{"pot":"loud"}}"#, as: "Wrong value", in: library)
         try write("[1,2,3]", as: "Array", in: library)
         for name in ["Broken", "Blank", "Wrong type", "Wrong value", "Array"] {
             #expect(throws: PresetError.unreadable(name)) { try library.load(name) }
@@ -61,19 +61,19 @@ struct PresetFileTests {
         for bad in [3_000_000_000, -1, 999] {
             let synth = Synth(sampleRate: 48_000)
             synth.loadProgram(2)
-            let ring = try #require(Parameters.named("ring"))
-            synth.setValue(1.5, of: ring)
-            let set = try JSONDecoder().decode(SetState.self, from: Data(#"{"program":\#(bad),"values":{"vowel":600}}"#.utf8))
+            let release = try #require(Parameters.named("release"))
+            synth.setValue(1.5, of: release)
+            let set = try JSONDecoder().decode(SetState.self, from: Data(#"{"program":\#(bad),"values":{"pot":600}}"#.utf8))
             synth.apply(set, to: .keyboard)
             #expect(synth.program() == 2, "program \(bad)")
-            #expect(abs(synth.value(of: ring) - Programs.value(program: 2, parameter: ring)) < 1e-4, "program \(bad)")
-            #expect(abs(synth.value(of: try #require(Parameters.named("vowel"))) - 600) < 1)
+            #expect(abs(synth.value(of: release) - Programs.value(program: 2, parameter: release)) < 1e-4, "program \(bad)")
+            #expect(abs(synth.value(of: try #require(Parameters.named("pot"))) - 600) < 1)
 
             let kit = try JSONDecoder().decode(Kit.self, from: Data(#"{"pads":[{"set":{"program":\#(bad)}}]}"#.utf8))
             synth.apply(kit)
             #expect(synth.program(in: .pad(0)) >= 0)
         }
-        #expect(Programs.value(program: 3_000_000_000, parameter: try #require(Parameters.named("ring"))) == (try #require(Parameters.named("ring"))).defaultValue)
+        #expect(Programs.value(program: 3_000_000_000, parameter: try #require(Parameters.named("release"))) == (try #require(Parameters.named("release"))).defaultValue)
         Synth(sampleRate: 48_000).loadProgram(3_000_000_000)
     }
 

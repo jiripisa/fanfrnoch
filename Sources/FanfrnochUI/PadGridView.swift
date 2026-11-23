@@ -49,7 +49,7 @@ struct PadGridView: View {
     }
 }
 
-/// One pad on glass: "05 Khomus" over "C2  G1".
+/// One pad on glass: "05 Zambomba" over "C2  G1".
 private struct PadTile: View {
 
     let pad: Int

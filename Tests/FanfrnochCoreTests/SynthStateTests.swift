@@ -6,19 +6,19 @@ import Testing
 @Suite("Synth state")
 struct SynthStateTests {
 
-    private func vowel() throws -> Parameter { try #require(Parameters.named("vowel")) }
-    private func ring() throws -> Parameter { try #require(Parameters.named("ring")) }
+    private func pot() throws -> Parameter { try #require(Parameters.named("pot")) }
+    private func release() throws -> Parameter { try #require(Parameters.named("release")) }
 
     @Test("A state goes through JSON and into a fresh synth unchanged")
     func roundTrip() throws {
         let source = Synth(sampleRate: 48_000)
-        let vowel = try vowel(), ring = try ring()
-        source.setValue(700, of: vowel)
-        source.setValue(3.5, of: ring)
+        let pot = try pot(), release = try release()
+        source.setValue(700, of: pot)
+        source.setValue(1.5, of: release)
         source.loadProgram(2, into: .pad(7))
-        for (pad, hz) in [(0, 500.0), (7, 1_100), (15, 1_900)] {
-            source.setValue(Float(hz), of: vowel, in: .pad(pad))
-            source.setValue(Float(pad) / 4, of: ring, in: .pad(pad))
+        for (pad, hz) in [(0, 500.0), (7, 1_100), (15, 1_400)] {
+            source.setValue(Float(hz), of: pot, in: .pad(pad))
+            source.setValue(Float(pad) / 8, of: release, in: .pad(pad))
         }
         source.setPadNote(50, pad: 0)
         source.setPadNote(73, pad: 7)
@@ -38,7 +38,7 @@ struct SynthStateTests {
         #expect(target.state == saved)
         #expect(target.mode == .pads)
         #expect(target.padNote(7) == 73 && target.padGroup(7) == 9 && target.padGroup(0) == nil)
-        #expect(abs(target.value(of: vowel, in: .pad(7)) - 1_100) < 1)
+        #expect(abs(target.value(of: pot, in: .pad(7)) - 1_100) < 1)
         #expect(target.program(in: .pad(7)) == 2)
     }
 
@@ -53,26 +53,26 @@ struct SynthStateTests {
     @Test("A name this version does not know is ignored; a knob the state lacks takes its program's value")
     func unknownAndMissingKeys() throws {
         let synth = Synth(sampleRate: 48_000)
-        let vowel = try vowel(), ring = try ring()
-        synth.setValue(900, of: vowel)
-        synth.setValue(4, of: ring)
+        let pot = try pot(), release = try release()
+        synth.setValue(900, of: pot)
+        synth.setValue(0.6, of: release)
         var state = synth.state
         state.keyboard.values["from-the-future"] = 1
-        state.keyboard.values["vowel"] = 600
-        state.keyboard.values["ring"] = nil
+        state.keyboard.values["pot"] = 600
+        state.keyboard.values["release"] = nil
         state.pads[3].set.values["from-the-future"] = 1
 
         synth.apply(state)
-        #expect(abs(synth.value(of: vowel) - 600) < 1)
-        let programRing = Programs.value(program: state.keyboard.program, parameter: ring)
-        #expect(abs(synth.value(of: ring) - programRing) < 1e-4)
+        #expect(abs(synth.value(of: pot) - 600) < 1)
+        let programRelease = Programs.value(program: state.keyboard.program, parameter: release)
+        #expect(abs(synth.value(of: release) - programRelease) < 1e-4)
 
         // The same when the state's program differs: the missing knob is that program's.
-        synth.setValue(4, of: ring)
+        synth.setValue(0.6, of: release)
         state.keyboard.program = (synth.program() + 1) % 3
         synth.apply(state)
         #expect(synth.program() == state.keyboard.program)
-        #expect(abs(synth.value(of: ring) - Programs.value(program: state.keyboard.program, parameter: ring)) < 1e-4)
+        #expect(abs(synth.value(of: release) - Programs.value(program: state.keyboard.program, parameter: release)) < 1e-4)
     }
 
     @Test("A state of 30 knobs takes the program's values for the other four, the octave included")
@@ -95,7 +95,7 @@ struct SynthStateTests {
 
     @Test("A set's preset name survives JSON, and a set saved without one reads as none")
     func presetName() throws {
-        let set = SetState(program: 2, values: ["vowel": 600], preset: "Mine")
+        let set = SetState(program: 2, values: ["pot": 600], preset: "Mine")
         let data = try JSONEncoder().encode(set)
         #expect(try JSONDecoder().decode(SetState.self, from: data) == set)
         #expect(try JSONDecoder().decode(SetState.self, from: Data(#"{"program":2}"#.utf8)).preset == nil)

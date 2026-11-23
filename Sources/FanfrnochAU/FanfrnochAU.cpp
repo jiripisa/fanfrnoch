@@ -50,17 +50,21 @@ const std::vector<AUPreset>& factoryPresets()
     return presets;
 }
 
-// The longest a note can ring: the top of the Ring knob, in seconds.
-Float64 longestRing()
+// The top of a knob's travel, plain.
+Float64 topOf(const char* identifier)
 {
     for (int i = 0; i < fanfrnoch_num_params(); ++i)
     {
         FanfrnochParamInfo info{};
         fanfrnoch_param_info(i, &info);
-        if (!std::strcmp(info.identifier, "ring")) return info.maxValue;
+        if (!std::strcmp(info.identifier, identifier)) return info.maxValue;
     }
     return 0.0;
 }
+
+// The longest a stroke can sound, in seconds: the hand rubs for the top of Length (ms), and the
+// voice retires once the top of Release has passed three times over and 0.1 s more.
+Float64 longestStroke() { return topOf("length") / 1000.0 + 3.0 * topOf("release") + 0.1; }
 
 // The rate fanfrnoch_create() prepares the engine for, before a host sets one.
 constexpr Float64 kStartRate = 44100.0;
@@ -218,7 +222,7 @@ class FanfrnochAU : public ausdk::MusicDeviceBase {
 
 public:
     explicit FanfrnochAU(AudioComponentInstance instance)
-        : Base{ instance, 0, 1 }, engine_(fanfrnoch_create()), knobs_(knobCount()), tail_(longestRing())
+        : Base{ instance, 0, 1 }, engine_(fanfrnoch_create()), knobs_(knobCount()), tail_(longestStroke())
     {
         CreateElements();
         const int count = fanfrnoch_num_params();

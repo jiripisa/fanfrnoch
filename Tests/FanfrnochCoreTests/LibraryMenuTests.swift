@@ -10,14 +10,14 @@ struct LibraryMenuTests {
 
     @Test("The Preset menu: the presets, the one in use ticked, then Save as… and Delete with every preset")
     func presetMenu() {
-        let entries = LibraryMenu.presets(["Bright", "dark drone", "Khomus 2"], inUse: "dark drone")
+        let entries = LibraryMenu.presets(["Bright", "dark drone", "Zambomba 2"], inUse: "dark drone")
         #expect(entries == [
             .file("Bright", ticked: false),
             .file("dark drone", ticked: true),
-            .file("Khomus 2", ticked: false),
+            .file("Zambomba 2", ticked: false),
             .divider,
             .save("Save as…"),
-            .delete("Delete", names: ["Bright", "dark drone", "Khomus 2"]),
+            .delete("Delete", names: ["Bright", "dark drone", "Zambomba 2"]),
         ])
     }
 

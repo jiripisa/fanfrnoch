@@ -18,12 +18,12 @@ struct PresetLibraryTests {
         try? FileManager.default.removeItem(at: library.folder.deletingLastPathComponent())
     }
 
-    private func vowel() throws -> Parameter { try #require(Parameters.named("vowel")) }
+    private func pot() throws -> Parameter { try #require(Parameters.named("pot")) }
 
     private func sound() throws -> SetState {
         let synth = Synth(sampleRate: 48_000)
         synth.loadProgram(2)
-        synth.setValue(777, of: try vowel())
+        synth.setValue(777, of: try pot())
         return synth.state.keyboard
     }
 
@@ -90,7 +90,7 @@ struct PresetLibraryTests {
         try library.save(SetState(program: 0, values: [:]), as: "Drone")
         try library.save(try sound(), as: "drone")
         #expect(library.names() == ["drone"])
-        #expect(try library.load("DRONE").values["vowel"] == 777)
+        #expect(try library.load("DRONE").values["pot"] == 777)
         #expect(PresetLibrary.name("dRoNe ", isAmong: library.names()))
         #expect(!PresetLibrary.name("drones", isAmong: library.names()))
     }
@@ -104,7 +104,7 @@ struct PresetLibraryTests {
         library.rename = { _, _ in throw CocoaError(.fileWriteNoPermission) }
         #expect(throws: CocoaError(.fileWriteNoPermission)) { try library.save(sound, as: "drone") }
         #expect(library.names() == ["Drone"])
-        #expect(try library.load("Drone").values["vowel"] == 777)
+        #expect(try library.load("Drone").values["pot"] == 777)
         #expect(try FileManager.default.contentsOfDirectory(atPath: library.folder.path) == ["Drone.fanfrnoch"])   // nothing left aside
     }
 
@@ -152,10 +152,10 @@ struct PresetLibraryTests {
         try library.save(try sound(), as: "Mine")
         let kept = PresetShelf(library: library, inUse: "Mine")
         #expect(kept.names == ["Mine"] && kept.inUse == "Mine")
-        #expect(kept.value(of: try vowel()) == 777)
+        #expect(kept.value(of: try pot()) == 777)
         let lost = PresetShelf(library: library, inUse: "Thrown away")
         #expect(lost.inUse == nil)
-        #expect(lost.value(of: try vowel()) == nil)
+        #expect(lost.value(of: try pot()) == nil)
         #expect(PresetShelf(library: library, inUse: nil).inUse == nil)
     }
 
@@ -166,7 +166,7 @@ struct PresetLibraryTests {
         var shelf = PresetShelf(library: library, inUse: nil)
         try shelf.save(try sound(), as: " Mine ")
         #expect(shelf.names == ["Mine"] && shelf.inUse == "Mine")
-        #expect(shelf.value(of: try vowel()) == 777)
+        #expect(shelf.value(of: try pot()) == 777)
         #expect(try library.load("Mine").preset == "Mine")
         var attempt = shelf
         let set = try sound()
@@ -195,7 +195,7 @@ struct PresetLibraryTests {
         try shelf.save(try sound(), as: "Mine")
         let other = Self.library(folder: library.folder)
         try other.save(try sound(), as: "Another window's")
-        let vowel = try vowel()
+        let pot = try pot()
         let sawNew = shelf.look()
         #expect(sawNew && shelf.names == ["Another window's", "Mine"])
         let sawNothing = shelf.look()
@@ -204,7 +204,7 @@ struct PresetLibraryTests {
         try other.delete("Mine")
         let sawDelete = shelf.look()
         #expect(sawDelete)
-        #expect(shelf.inUse == nil && shelf.value(of: vowel) == nil)
+        #expect(shelf.inUse == nil && shelf.value(of: pot) == nil)
 
         try shelf.save(try sound(), as: "Again")
         try shelf.delete("again")

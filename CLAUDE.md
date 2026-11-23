@@ -17,7 +17,7 @@ A playable synthesized friction drum, after the Czech fanfrnoch: wet-hand stroke
 - **The Audio Unit's identity is permanent.** Its codes (`aumu` / `Fanf` /
   `JPis`, bundle id `io.jp4.fanfrnoch.audiounit`, the factory function
   `FanfrnochAUFactory`, the view class `FanfrnochAUViewFactory`) and its
-  parameter IDs (the engine's parameter index, 0…80) never change: host
+  parameter IDs (the engine's parameter index, 0…102) never change: host
   projects find the plug-in and their automation by them. The parameter
   table only grows at its end. Validate every change of the Audio Unit with
   `auval` (`development_workflow.md` §2.1).

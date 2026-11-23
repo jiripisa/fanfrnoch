@@ -15,15 +15,15 @@ struct SynthTests {
     @Test("A value round-trips, plain and normalised, in the keyboard set and in a pad")
     func valuesRoundTrip() throws {
         let synth = Synth(sampleRate: 48_000)
-        let vowel = try #require(Parameters.named("vowel"))
+        let pot = try #require(Parameters.named("pot"))
         for set in [SoundSet.keyboard, .pad(0), .pad(15)] {
-            synth.setValue(900, of: vowel, in: set)
-            #expect(abs(synth.value(of: vowel, in: set) - 900) < 0.5)
-            synth.setNormalisedValue(0.25, of: vowel, in: set)
-            #expect(abs(synth.normalisedValue(of: vowel, in: set) - 0.25) < 1e-5)
+            synth.setValue(900, of: pot, in: set)
+            #expect(abs(synth.value(of: pot, in: set) - 900) < 0.5)
+            synth.setNormalisedValue(0.25, of: pot, in: set)
+            #expect(abs(synth.normalisedValue(of: pot, in: set) - 0.25) < 1e-5)
         }
-        synth.setValue(vowel.range.lowerBound, of: vowel, in: .pad(3))
-        #expect(synth.value(of: vowel, in: .keyboard) != synth.value(of: vowel, in: .pad(3)))
+        synth.setValue(pot.range.lowerBound, of: pot, in: .pad(3))
+        #expect(synth.value(of: pot, in: .keyboard) != synth.value(of: pot, in: .pad(3)))
         #expect(SoundSet.keyboard.index == 0 && SoundSet.pad(0).index == 1 && SoundSet.pad(15).index == 16)
     }
 
@@ -40,10 +40,10 @@ struct SynthTests {
     @Test("Writing one pad's set leaves the other pads and the keyboard set as they were")
     func padSetsApart() throws {
         let synth = Synth()
-        let vowel = try #require(Parameters.named("vowel"))
+        let pot = try #require(Parameters.named("pot"))
         let before = everything(synth)
         synth.loadProgram(before.programs[6] == 3 ? 4 : 3, into: .pad(5))
-        synth.setValue(vowel.range.upperBound, of: vowel, in: .pad(5))
+        synth.setValue(pot.range.upperBound, of: pot, in: .pad(5))
         let after = everything(synth)
         for set in after.knobs.indices where set != 6 {
             #expect(after.knobs[set] == before.knobs[set], "set \(set) changed")
@@ -56,20 +56,20 @@ struct SynthTests {
     @Test("A pad outside 0...15 is ignored: nothing is written, and reading it gives defaults and nil")
     func padsOutOfRange() throws {
         let synth = Synth()
-        let vowel = try #require(Parameters.named("vowel"))
+        let pot = try #require(Parameters.named("pot"))
         synth.noteOn(52)                        // what Send to pad would copy
         _ = render(synth)
         let before = everything(synth)
         for pad in [-1, 16, 20] {
             #expect(SoundSet.pad(pad).index == -1)
-            synth.setValue(vowel.range.lowerBound, of: vowel, in: .pad(pad))
-            synth.setNormalisedValue(1, of: vowel, in: .pad(pad))
+            synth.setValue(pot.range.lowerBound, of: pot, in: .pad(pad))
+            synth.setNormalisedValue(1, of: pot, in: .pad(pad))
             synth.loadProgram(3, into: .pad(pad))
             synth.setPadNote(70, pad: pad)
             synth.setPadGroup(5, pad: pad)
             synth.sendToPad(pad)
-            #expect(synth.value(of: vowel, in: .pad(pad)) == vowel.defaultValue)
-            #expect(synth.normalisedValue(of: vowel, in: .pad(pad)) == vowel.normalised(vowel.defaultValue))
+            #expect(synth.value(of: pot, in: .pad(pad)) == pot.defaultValue)
+            #expect(synth.normalisedValue(of: pot, in: .pad(pad)) == pot.normalised(pot.defaultValue))
             #expect(synth.program(in: .pad(pad)) == 0)
             #expect(synth.padNote(pad) == nil && synth.padGroup(pad) == nil)
         }
@@ -132,9 +132,10 @@ struct SynthTests {
     }
 
     @Test("Voices count while sounding and stop after all notes off; the latency is the engine's")
-    func voicesAndLatency() {
+    func voicesAndLatency() throws {
         let synth = Synth(sampleRate: 48_000)
         #expect(synth.latency == Int(fanfrnoch_latency(synth.engine)) && synth.latency > 0)
+        synth.setValue(1, of: try #require(Parameters.named("drum")))        // Many: two notes, two drums
         synth.noteOn(48)
         synth.noteOn(55)
         _ = render(synth, frames: 512)

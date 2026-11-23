@@ -16,7 +16,7 @@ struct KitTests {
         try? FileManager.default.removeItem(at: library.folder.deletingLastPathComponent())
     }
 
-    private func vowel() throws -> Parameter { try #require(Parameters.named("vowel")) }
+    private func pot() throws -> Parameter { try #require(Parameters.named("pot")) }
 
     @Test("A kit goes through its file into another synth, pad for pad")
     func roundTrip() throws {
@@ -24,7 +24,7 @@ struct KitTests {
         defer { remove(library) }
         let source = Synth(sampleRate: 48_000)
         for pad in 0..<16 {
-            source.setValue(Float(300 + pad * 90), of: try vowel(), in: .pad(pad))
+            source.setValue(Float(200 + pad * 80), of: try pot(), in: .pad(pad))
             source.setPadNote(40 + pad, pad: pad)
             source.setPadGroup(pad % 3 == 0 ? nil : pad, pad: pad)
         }
@@ -46,20 +46,20 @@ struct KitTests {
     @Test("Applying a kit leaves the mode and the keyboard set alone")
     func keyboardUntouched() throws {
         let source = Synth(sampleRate: 48_000)
-        source.setValue(555, of: try vowel(), in: .pad(0))
+        source.setValue(555, of: try pot(), in: .pad(0))
         source.setPadNote(70, pad: 0)
         let kit = source.kit
 
         let target = Synth(sampleRate: 48_000)
         target.mode = .keyboard
         target.loadProgram(3)
-        target.setValue(900, of: try vowel())
+        target.setValue(900, of: try pot())
         let keyboard = target.state.keyboard
         target.apply(kit)
         #expect(target.mode == .keyboard)
         #expect(target.state.keyboard == keyboard)
-        let vowel = try vowel()
-        #expect(target.padNote(0) == 70 && abs(target.value(of: vowel, in: .pad(0)) - 555) < 1)
+        let pot = try pot()
+        #expect(target.padNote(0) == 70 && abs(target.value(of: pot, in: .pad(0)) - 555) < 1)
 
         target.mode = .pads
         target.apply(kit)

@@ -23,53 +23,59 @@ struct SoundRegressionTests {
         let duration: Double
     }
 
-    /// The prototype's phrase, in seconds, as MIDI events (a stop of the ringing reed is a note-off).
-    private static func phrase(_ score: Score) -> [GrooveEvent] {
-        score.hits.map {
-            GrooveEvent(Double($0.frame) / PrototypeScores.sampleRate, $0.chokeOnly ? 0x80 : 0x90, $0.note,
-                        $0.chokeOnly ? 0 : $0.velocity)
-        }
+    private static func spike(_ name: String, as title: String) -> Case {
+        let render = PrototypeScores.render(named: name)
+        return Case(name: title, mode: render.isPads ? .pads : .keyboard, setup: { PrototypeScores.setUp(render, in: $0) },
+                    events: PrototypeScores.midiEvents(render), duration: render.seconds)
     }
 
-    private static let phraseLength = PrototypeScores.phraseLength
-
-    /// Two pads on one pitch, hit in turn.
-    private static let pairEvents: [GrooveEvent] = [
-        GrooveEvent(0.2, 0x90, 36, 110), GrooveEvent(0.7, 0x90, 37, 100),
-        GrooveEvent(1.2, 0x90, 36, 110), GrooveEvent(1.7, 0x90, 37, 100),
-    ]
-
-    private static func setUpPair(group: Int?) -> @Sendable (Synth) -> Void {
-        { synth in
-            for pad in [0, 1] { synth.setPadNote(40, pad: pad); synth.setPadGroup(group, pad: pad) }
-        }
+    private static func set(_ values: [String: Float]) -> @Sendable (Synth) -> Void {
+        { synth in for (id, value) in values { synth.setValue(value, of: Parameters.named(id)!) } }
     }
 
-    private static func set(_ identifier: String, _ value: Float) -> @Sendable (Synth) -> Void {
-        { synth in synth.setValue(value, of: Parameters.named(identifier)!) }
+    /// Sixteenths at 120 BPM on pads 1 and 2 in turn, one group: two hands on one drum.
+    private static let fastGroup: [GrooveEvent] = (0..<32).map { (i: Int) -> GrooveEvent in
+        let accent: Float = i % 4 == 0 ? 1.0 : 0.7
+        return GrooveEvent(0.3 + Double(i) * 0.125, 0x90, UInt8(36 + i % 2), PrototypeScores.velocity(accent))
     }
 
+    /// The groove on B2, and a fifth above it a 16th later: two drums with Drum Many.
+    private static let twoNotes: [GrooveEvent] = PrototypeScores.groove(PrototypeScores.B2).flatMap { (s: SpikeStroke) -> [GrooveEvent] in
+        let low = GrooveEvent(s.time, 0x90, PrototypeScores.B2, PrototypeScores.velocity(s.accent))
+        let high = GrooveEvent(s.time + 0.136, 0x90, PrototypeScores.B2 + 7, PrototypeScores.velocity(s.accent * 0.7))
+        return [low, high]
+    }
+
+    private static let grooveLength = PrototypeScores.render(named: "01b_fanfrnoch_default_groove").seconds
+
+    /// The spike's scores (instrument design §8), and a fast alternating group, a jump on every
+    /// stroke, Drum Many, the default kit and the modulation amounts.
     private static let scores: [Case] = [
-        Case(name: "default phrase", mode: .keyboard, setup: { _ in },
-              events: phrase(PrototypeScores.phrase(note: 36)), duration: phraseLength),
-        Case(name: "damped phrase", mode: .keyboard, setup: { _ in },
-              events: phrase(PrototypeScores.phrase(note: 36, sub: 4, chokeAhead: 0.040)), duration: phraseLength),
-        Case(name: "stroke in", mode: .keyboard, setup: set("stroke", 1),
-              events: phrase(PrototypeScores.phrase(note: 36)), duration: phraseLength),
-        Case(name: "stroke out", mode: .keyboard, setup: set("stroke", 0),
-              events: phrase(PrototypeScores.phrase(note: 36)), duration: phraseLength),
+        spike("01a_fanfrnoch_default_pulls", as: "default pulls"),
+        spike("01b_fanfrnoch_default_groove", as: "default groove"),
+        spike("01c_fanfrnoch_group_like_the_recording", as: "group of three drums"),
+        spike("02d_keyup_stop_note_lengths", as: "held notes, Key Up Stop"),
+        spike("09c_hands_alt6_tune10", as: "two hands"),
+        spike("11a_creak_40", as: "creak"),
+        spike("11b_split_50", as: "split"),
+        spike("12b_cuica_whoop_6.6st_80ms", as: "scoop"),
+        spike("12c_cuica_samba", as: "cuica samba"),
+        spike("P02_zambomba", as: "zambomba"),
+        spike("P06_creak", as: "creak program"),
+        spike("P07_flick", as: "flick"),
+        spike("P09_kit_fanfrnoch_low_high_cuica", as: "small kit"),
+        Case(name: "fast alternating group", mode: .pads,
+             setup: { synth in for pad in [0, 1] { synth.setPadNote(47, pad: pad); synth.setPadGroup(1, pad: pad) } },
+             events: fastGroup, duration: 5.8),
+        Case(name: "jump on every stroke", mode: .keyboard,
+             setup: { synth in synth.loadProgram(3, into: .keyboard); synth.setValue(100, of: Parameters.named("jump")!) },
+             events: PrototypeScores.midiEvents(PrototypeScores.render(named: "P02_zambomba")), duration: grooveLength),
+        Case(name: "drum many", mode: .keyboard, setup: set(["drum": 1]), events: twoNotes, duration: grooveLength),
         Case(name: "default kit groove", mode: .pads, setup: { _ in },
-              events: Grooves.defaultKit, duration: Grooves.defaultKitLength),
-        Case(name: "pads, group off", mode: .pads, setup: setUpPair(group: nil),
-              events: pairEvents, duration: 3.5),
-        Case(name: "pads, one group", mode: .pads, setup: setUpPair(group: 1),
-              events: pairEvents, duration: 3.5),
-        Case(name: "lfo and vel", mode: .keyboard,
-              setup: { synth in
-                  synth.setValue(40, of: Parameters.named("lfo1vowel")!)
-                  synth.setValue(50, of: Parameters.named("velring")!)
-              },
-              events: phrase(PrototypeScores.phrase(note: 36, sub: 4)), duration: phraseLength),
+             events: Grooves.defaultKit, duration: Grooves.defaultKitLength),
+        Case(name: "lfo and vel", mode: .keyboard, setup: set(["lfo1stick": 40, "lfo1rate": 3, "velrelease": 50]),
+             events: PrototypeScores.midiEvents(PrototypeScores.render(named: "01b_fanfrnoch_default_groove")),
+             duration: grooveLength),
     ]
     private static let rates = [44_100.0, 48_000.0, 96_000.0]
     private static let blockSize = 128
@@ -90,35 +96,63 @@ struct SoundRegressionTests {
         }
     }
 
-    /// Taken on 2026-11-16 from the engine of phase 02 (the sound engine), and taken again the same
-    /// day when Air and the breath were made to fade with the reed (the tails had hissed), and once
-    /// more when the breath was made to fade with the reed's level, so that a soft hit no longer
-    /// clicks as it retires. A debug build and a release build rendered the same samples.
+    /// Taken on 2026-11-23 from the engine of phase 02 (the friction drum). A debug build and a
+    /// release build rendered the same samples.
     private static let references: [Reference] = [
-        Reference(score: "default phrase", sampleRate: 44100, fingerprint: 0x8D7BB69EB2AB6FB5, levels: [0.035967, 0.003146, 0.039353, 0.051399, 0.054575, 0.050981, 0.045167, 0.009028, 0.001015]),
-        Reference(score: "default phrase", sampleRate: 48000, fingerprint: 0x474423ED9BA3210B, levels: [0.03597, 0.003141, 0.039421, 0.051433, 0.054635, 0.050981, 0.045127, 0.009037, 0.001024]),
-        Reference(score: "default phrase", sampleRate: 96000, fingerprint: 0xA675746D576EF96B, levels: [0.03597, 0.003141, 0.03943, 0.051293, 0.054472, 0.050941, 0.04507, 0.009031, 0.001009]),
-        Reference(score: "damped phrase", sampleRate: 44100, fingerprint: 0x8A14D1F922839DCA, levels: [0.035967, 0.003146, 0.040314, 0.060049, 0.065369, 0.06083, 0.058064, 0.012099, 0.001222]),
-        Reference(score: "damped phrase", sampleRate: 48000, fingerprint: 0x12C326D3A4E7A248, levels: [0.03597, 0.003141, 0.040247, 0.05982, 0.065328, 0.060658, 0.058019, 0.012099, 0.001222]),
-        Reference(score: "damped phrase", sampleRate: 96000, fingerprint: 0x562EB723EEA058F3, levels: [0.03597, 0.003141, 0.040249, 0.059869, 0.065186, 0.060681, 0.057918, 0.012098, 0.001225]),
-        Reference(score: "stroke in", sampleRate: 44100, fingerprint: 0x1B903BFFF4B2A51E, levels: [0.037461, 0.00316, 0.039789, 0.052069, 0.055279, 0.051787, 0.046172, 0.009002, 0.001021]),
-        Reference(score: "stroke in", sampleRate: 48000, fingerprint: 0x91BD4C50B7BAF453, levels: [0.037457, 0.003155, 0.039826, 0.052094, 0.055295, 0.051806, 0.046147, 0.009085, 0.001023]),
-        Reference(score: "stroke in", sampleRate: 96000, fingerprint: 0xCE244B106BE33DC2, levels: [0.03746, 0.003117, 0.039828, 0.0522, 0.055434, 0.051945, 0.046295, 0.008918, 0.001025]),
-        Reference(score: "stroke out", sampleRate: 44100, fingerprint: 0x290F4661111A80F, levels: [0.035967, 0.003146, 0.037855, 0.049122, 0.053069, 0.048573, 0.044552, 0.009028, 0.001015]),
-        Reference(score: "stroke out", sampleRate: 48000, fingerprint: 0x95F1D51E803230D3, levels: [0.03597, 0.003141, 0.037903, 0.049047, 0.053053, 0.048569, 0.044547, 0.009037, 0.001024]),
-        Reference(score: "stroke out", sampleRate: 96000, fingerprint: 0x6A983E44CD7F8D45, levels: [0.03597, 0.003141, 0.037911, 0.049162, 0.053023, 0.048592, 0.044575, 0.009031, 0.001009]),
-        Reference(score: "default kit groove", sampleRate: 44100, fingerprint: 0x58C7D94ED5A465B6, levels: [0.074332, 0.09562, 0.087408, 0.08776, 0.078233, 0.083478, 0.089181, 0.08949, 0.077373, 0.058052, 0.034587, 0.009063]),
-        Reference(score: "default kit groove", sampleRate: 48000, fingerprint: 0xD5CD3CE73AF00A22, levels: [0.07542, 0.095425, 0.087716, 0.088332, 0.078876, 0.084316, 0.089649, 0.088959, 0.07794, 0.058509, 0.033539, 0.009065]),
-        Reference(score: "default kit groove", sampleRate: 96000, fingerprint: 0x9A3C94345AC82A52, levels: [0.074551, 0.095356, 0.087481, 0.088059, 0.078132, 0.084046, 0.088937, 0.089095, 0.078392, 0.057825, 0.034063, 0.009505]),
-        Reference(score: "pads, group off", sampleRate: 44100, fingerprint: 0xC80669C3C916E772, levels: [0.043397, 0.04482, 0.003988, 0.000543]),
-        Reference(score: "pads, group off", sampleRate: 48000, fingerprint: 0xD73B6C97ED47A717, levels: [0.043623, 0.044719, 0.00398, 0.000536]),
-        Reference(score: "pads, group off", sampleRate: 96000, fingerprint: 0xA400BE3AB4335F4A, levels: [0.04348, 0.04463, 0.003986, 0.000536]),
-        Reference(score: "pads, one group", sampleRate: 44100, fingerprint: 0xAF28ED4B9ACBD211, levels: [0.043737, 0.042389, 0.00015, 0.0]),
-        Reference(score: "pads, one group", sampleRate: 48000, fingerprint: 0xBB9C9CA5C3D50A2E, levels: [0.043745, 0.042372, 0.000149, 0.0]),
-        Reference(score: "pads, one group", sampleRate: 96000, fingerprint: 0x4831A442D8CDBF25, levels: [0.043741, 0.042369, 0.000148, 0.0]),
-        Reference(score: "lfo and vel", sampleRate: 44100, fingerprint: 0xD64377777A787F02, levels: [0.029848, 0.001314, 0.03455, 0.047542, 0.053236, 0.045798, 0.046034, 0.004956, 8e-05]),
-        Reference(score: "lfo and vel", sampleRate: 48000, fingerprint: 0xE870B23662EF01D1, levels: [0.029846, 0.001312, 0.034555, 0.047562, 0.053373, 0.045805, 0.046073, 0.004952, 8e-05]),
-        Reference(score: "lfo and vel", sampleRate: 96000, fingerprint: 0x4E79D9AC94232445, levels: [0.029846, 0.001313, 0.034555, 0.047627, 0.052811, 0.045735, 0.045902, 0.004951, 8.1e-05]),
+        Reference(score: "default pulls", sampleRate: 44100, fingerprint: 0x152AE6394B9F562A, levels: [0.13174, 0.1326, 0.112041, 0.123441, 0.114176, 2.2e-05]),
+        Reference(score: "default pulls", sampleRate: 48000, fingerprint: 0xB727F199BCF59FA1, levels: [0.129423, 0.128191, 0.127741, 0.126735, 0.112354, 2.7e-05]),
+        Reference(score: "default pulls", sampleRate: 96000, fingerprint: 0xB93F6D2B58F94E63, levels: [0.132249, 0.129405, 0.132786, 0.117014, 0.121111, 2.8e-05]),
+        Reference(score: "default groove", sampleRate: 44100, fingerprint: 0x9A192D01E82EF1E, levels: [0.124163, 0.135569, 0.155873, 0.160743, 0.144479, 0.134239, 0.151063, 0.136355, 0.132488, 2.1e-05]),
+        Reference(score: "default groove", sampleRate: 48000, fingerprint: 0x6C4E86DDBC8E892C, levels: [0.122188, 0.123393, 0.151459, 0.150315, 0.143789, 0.132726, 0.133211, 0.124532, 0.127916, 3.6e-05]),
+        Reference(score: "default groove", sampleRate: 96000, fingerprint: 0x2B20D27920F0236D, levels: [0.122436, 0.128214, 0.141615, 0.154633, 0.147982, 0.131922, 0.133703, 0.123402, 0.129289, 4.2e-05]),
+        Reference(score: "group of three drums", sampleRate: 44100, fingerprint: 0x6E359EACD0D6D6C3, levels: [0.126326, 0.099455, 0.118705, 0.092515, 0.128317, 0.107019, 0.127597, 0.110817, 0.1021, 0.053091, 0.0]),
+        Reference(score: "group of three drums", sampleRate: 48000, fingerprint: 0xDE5D248AE10290E, levels: [0.125741, 0.099534, 0.1196, 0.092476, 0.126793, 0.098797, 0.124448, 0.123834, 0.110743, 0.055991, 0.0]),
+        Reference(score: "group of three drums", sampleRate: 96000, fingerprint: 0x186B49BE794D1030, levels: [0.125749, 0.099595, 0.132003, 0.090212, 0.124756, 0.100895, 0.129842, 0.129111, 0.109516, 0.054913, 0.0]),
+        Reference(score: "held notes, Key Up Stop", sampleRate: 44100, fingerprint: 0xBB0CD4A78C8DCC60, levels: [0.082957, 0.109674, 0.168366, 0.001359, 0.0]),
+        Reference(score: "held notes, Key Up Stop", sampleRate: 48000, fingerprint: 0xF98978D0782E5FF3, levels: [0.088232, 0.107547, 0.153813, 0.001321, 0.0]),
+        Reference(score: "held notes, Key Up Stop", sampleRate: 96000, fingerprint: 0x9CDFC7A1660B0DAF, levels: [0.091301, 0.107398, 0.156024, 0.00127, 0.0]),
+        Reference(score: "two hands", sampleRate: 44100, fingerprint: 0x422E0DD13663B872, levels: [0.077924, 0.089204, 0.08227, 0.078734, 0.034749, 0.0]),
+        Reference(score: "two hands", sampleRate: 48000, fingerprint: 0x4BA1E7A54F4B6D7E, levels: [0.079355, 0.082704, 0.089126, 0.083025, 0.0396, 0.0]),
+        Reference(score: "two hands", sampleRate: 96000, fingerprint: 0x6E17701531166E0D, levels: [0.076159, 0.086933, 0.087974, 0.085026, 0.043826, 0.0]),
+        Reference(score: "creak", sampleRate: 44100, fingerprint: 0x7280B01ECCD34627, levels: [0.086477, 0.077781, 0.075531, 0.076021, 0.082763, 3.4e-05]),
+        Reference(score: "creak", sampleRate: 48000, fingerprint: 0x4388992D16E58365, levels: [0.082997, 0.079747, 0.071556, 0.074004, 0.073977, 1.2e-05]),
+        Reference(score: "creak", sampleRate: 96000, fingerprint: 0xEE19E97C688B9787, levels: [0.084872, 0.081185, 0.071152, 0.082896, 0.069854, 1.3e-05]),
+        Reference(score: "split", sampleRate: 44100, fingerprint: 0x822BC99A9053FED4, levels: [0.138649, 0.13577, 0.116753, 0.127086, 0.116986, 2.3e-05]),
+        Reference(score: "split", sampleRate: 48000, fingerprint: 0xC21F6C6BC0C54FBA, levels: [0.134109, 0.13413, 0.131112, 0.132214, 0.117985, 2.8e-05]),
+        Reference(score: "split", sampleRate: 96000, fingerprint: 0x63C73675C5095A24, levels: [0.136987, 0.13139, 0.134443, 0.120838, 0.124263, 2.8e-05]),
+        Reference(score: "scoop", sampleRate: 44100, fingerprint: 0x5E594A8608082542, levels: [0.035026, 0.042399, 0.029917, 0.041171, 0.000557, 0.0]),
+        Reference(score: "scoop", sampleRate: 48000, fingerprint: 0x34FAC64726230185, levels: [0.0361, 0.044652, 0.035769, 0.041559, 0.000491, 0.0]),
+        Reference(score: "scoop", sampleRate: 96000, fingerprint: 0x9FAECB28B6085A71, levels: [0.036102, 0.046764, 0.03079, 0.040556, 0.000462, 0.0]),
+        Reference(score: "cuica samba", sampleRate: 44100, fingerprint: 0x88EF2E710A99082, levels: [0.102403, 0.101718, 0.108039, 0.10772, 0.105518, 0.104167, 0.115895, 0.065596, 0.0]),
+        Reference(score: "cuica samba", sampleRate: 48000, fingerprint: 0xAFB45F06892C6E8E, levels: [0.10616, 0.103515, 0.115665, 0.114728, 0.097529, 0.104734, 0.117563, 0.056303, 0.0]),
+        Reference(score: "cuica samba", sampleRate: 96000, fingerprint: 0xBC404756A1317A85, levels: [0.106196, 0.103035, 0.119003, 0.114037, 0.095893, 0.103981, 0.11599, 0.060574, 0.0]),
+        Reference(score: "zambomba", sampleRate: 44100, fingerprint: 0x11CD360C719B1C69, levels: [0.077418, 0.077968, 0.085918, 0.094659, 0.084137, 0.082107, 0.102564, 0.079021, 0.075089, 0.0]),
+        Reference(score: "zambomba", sampleRate: 48000, fingerprint: 0x16664C172CD46856, levels: [0.08117, 0.066785, 0.080843, 0.084691, 0.076675, 0.083881, 0.0894, 0.070919, 0.082128, 0.0]),
+        Reference(score: "zambomba", sampleRate: 96000, fingerprint: 0xB4092CFC80189DC7, levels: [0.08118, 0.076921, 0.07648, 0.0888, 0.079515, 0.081989, 0.094207, 0.066053, 0.083184, 0.0]),
+        Reference(score: "creak program", sampleRate: 44100, fingerprint: 0xA3FD79D9CFDA1A3A, levels: [0.043565, 0.03675, 0.026188, 0.04635, 1e-06]),
+        Reference(score: "creak program", sampleRate: 48000, fingerprint: 0x33278245985BE0DE, levels: [0.043373, 0.033263, 0.02363, 0.043268, 1e-06]),
+        Reference(score: "creak program", sampleRate: 96000, fingerprint: 0x9619507A4BC11DBC, levels: [0.043434, 0.033553, 0.026514, 0.044244, 1e-06]),
+        Reference(score: "flick", sampleRate: 44100, fingerprint: 0x19E584C6D4905126, levels: [0.005464, 0.007656, 0.004692, 0.005142, 0.0]),
+        Reference(score: "flick", sampleRate: 48000, fingerprint: 0xB8D14A831122B2DA, levels: [0.005515, 0.006711, 0.005786, 0.005719, 0.0]),
+        Reference(score: "flick", sampleRate: 96000, fingerprint: 0x6E3422DAB097E1D3, levels: [0.005574, 0.007191, 0.005889, 0.005774, 0.0]),
+        Reference(score: "small kit", sampleRate: 44100, fingerprint: 0x7EFB335E8D026E6A, levels: [0.135281, 0.136281, 0.167707, 0.163468, 0.151265, 0.140437, 0.166412, 0.144175, 0.142088, 2.1e-05, 0.0]),
+        Reference(score: "small kit", sampleRate: 48000, fingerprint: 0xEDA4191C2131AA7D, levels: [0.131593, 0.125059, 0.160957, 0.157706, 0.150398, 0.140421, 0.148083, 0.129803, 0.136416, 3.6e-05, 0.0]),
+        Reference(score: "small kit", sampleRate: 96000, fingerprint: 0xCBF3CC6C6BB456A9, levels: [0.131857, 0.130113, 0.153057, 0.161707, 0.154269, 0.137747, 0.144301, 0.130771, 0.138178, 4.2e-05, 0.0]),
+        Reference(score: "fast alternating group", sampleRate: 44100, fingerprint: 0xA5ED6E5D9A608FB8, levels: [0.150311, 0.186883, 0.178798, 0.175413, 0.097549, 0.0]),
+        Reference(score: "fast alternating group", sampleRate: 48000, fingerprint: 0x194B1AFFF350FE36, levels: [0.149296, 0.183307, 0.179241, 0.177824, 0.104203, 0.0]),
+        Reference(score: "fast alternating group", sampleRate: 96000, fingerprint: 0x8EBE19A8FF86B937, levels: [0.148971, 0.182018, 0.178795, 0.178642, 0.111411, 0.0]),
+        Reference(score: "jump on every stroke", sampleRate: 44100, fingerprint: 0xEA787FD91243A3CB, levels: [0.091282, 0.090404, 0.105736, 0.113556, 0.094127, 0.092268, 0.113416, 0.08519, 0.08559, 0.0]),
+        Reference(score: "jump on every stroke", sampleRate: 48000, fingerprint: 0xD36D8B8904D60177, levels: [0.097122, 0.077073, 0.098909, 0.103747, 0.093066, 0.094074, 0.098284, 0.077495, 0.085154, 0.0]),
+        Reference(score: "jump on every stroke", sampleRate: 96000, fingerprint: 0x953C0F5924B01437, levels: [0.097137, 0.080216, 0.094692, 0.107247, 0.096902, 0.093936, 0.099753, 0.078015, 0.085831, 0.0]),
+        Reference(score: "drum many", sampleRate: 44100, fingerprint: 0x242FFA290A1B2FAA, levels: [0.150064, 0.17627, 0.199959, 0.20094, 0.182954, 0.167295, 0.18416, 0.176045, 0.174973, 0.000951]),
+        Reference(score: "drum many", sampleRate: 48000, fingerprint: 0x17170047C2768FD1, levels: [0.145934, 0.16332, 0.194798, 0.185249, 0.184344, 0.17203, 0.166777, 0.168096, 0.170211, 0.00105]),
+        Reference(score: "drum many", sampleRate: 96000, fingerprint: 0xE69B84A00381FD1A, levels: [0.146107, 0.169783, 0.189634, 0.190383, 0.182836, 0.171151, 0.169737, 0.170101, 0.171798, 0.001041]),
+        Reference(score: "default kit groove", sampleRate: 44100, fingerprint: 0x2FF1EBDEB466731D, levels: [0.146083, 0.128788, 0.168829, 0.137712, 0.134369, 0.13524, 0.13322, 0.151059, 0.143889, 0.109947, 5e-06, 0.0]),
+        Reference(score: "default kit groove", sampleRate: 48000, fingerprint: 0xF56D75D144BA10A4, levels: [0.146408, 0.124874, 0.160807, 0.125797, 0.125733, 0.136057, 0.133383, 0.138022, 0.144678, 0.113718, 7e-06, 0.0]),
+        Reference(score: "default kit groove", sampleRate: 96000, fingerprint: 0xEB3CEB0F3CF0FDB3, levels: [0.146185, 0.124821, 0.160632, 0.125852, 0.124852, 0.136332, 0.133409, 0.138393, 0.148678, 0.121454, 7e-06, 0.0]),
+        Reference(score: "lfo and vel", sampleRate: 44100, fingerprint: 0x7EFB87B31876FC08, levels: [0.12445, 0.131799, 0.151524, 0.157658, 0.141488, 0.130426, 0.146756, 0.133796, 0.12971, 9e-06]),
+        Reference(score: "lfo and vel", sampleRate: 48000, fingerprint: 0x4807798C9CF33203, levels: [0.121809, 0.120226, 0.147022, 0.147545, 0.141849, 0.130116, 0.129338, 0.121818, 0.124899, 1.6e-05]),
+        Reference(score: "lfo and vel", sampleRate: 96000, fingerprint: 0xBF21335E025A1F74, levels: [0.122001, 0.125276, 0.138337, 0.150663, 0.144804, 0.128048, 0.130387, 0.120812, 0.126602, 1.9e-05]),
     ]
 
     private static func render(_ score: Case, sampleRate: Double) -> [Float] {

@@ -3,8 +3,8 @@ import SwiftUI
 import FanfrnochCore
 
 /// The instrument's panel, the same in the app's window and in the plug-in's:
-/// the header (`HeaderView`), an ornament band, the five groups of controls
-/// (Reed, Stroke, Mouth, Breath, Master) side by side on glass, then `footer`
+/// the header (`HeaderView`), an ornament band, the seven groups of controls
+/// (Stroke, Hands, Pitch, Friction, Body, Noise, Master) side by side on glass, then `footer`
 /// (the pads or the keyboard). The knobs show the set the model shows: the
 /// keyboard's, or the selected pad's. With LFO 1, LFO 2 or VEL on in the
 /// header, they set that source's amounts; with MIDI on, they show their MIDI
@@ -57,7 +57,7 @@ public struct InstrumentPanel<Footer: View, Trailing: View>: View {
                 .zIndex(1)              // the error line hangs over what is below
             OrnamentBand()
             // Spacing 0: glass closer than the container's spacing blends into one shape, and
-            // the five groups are meant to stay apart.
+            // the groups are meant to stay apart.
             GlassEffectContainer(spacing: 0) {
                 HStack(alignment: .top, spacing: 6) {
                     ForEach(ParameterSection.all) { section in

@@ -10,7 +10,7 @@ struct PadPanelTests {
         #expect(PadLabel.number(0) == "01")
         #expect(PadLabel.number(4) == "05")
         #expect(PadLabel.number(15) == "16")
-        #expect(PadLabel.title(4, name: "Khomus") == "05 · Khomus")
+        #expect(PadLabel.title(4, name: "Zambomba") == "05 · Zambomba")
     }
 
     @Test("A tile shows the pad's pitch and its group, Off without one")
@@ -26,10 +26,10 @@ struct PadPanelTests {
     func sendToPad() {
         #expect(PadLabel.sendPitch(lastNote: nil) == 36)
         #expect(PadLabel.sendPitch(lastNote: 48) == 48)
-        #expect(PadLabel.sendQuestion(pad: 4, name: "Khomus", lastNote: 48)
-                == "Replace pad 05 · Khomus with the keyboard's sound at C3?")
-        #expect(PadLabel.sendQuestion(pad: 0, name: "Morsing", lastNote: nil)
-                == "Replace pad 01 · Morsing with the keyboard's sound at C2?")
+        #expect(PadLabel.sendQuestion(pad: 4, name: "Zambomba", lastNote: 48)
+                == "Replace pad 05 · Zambomba with the keyboard's sound at C3?")
+        #expect(PadLabel.sendQuestion(pad: 0, name: "Cuíca", lastNote: nil)
+                == "Replace pad 01 · Cuíca with the keyboard's sound at C2?")
     }
 
     @Test("Pad 1 is top left and the pads run left to right, row by row, as in the mockup")

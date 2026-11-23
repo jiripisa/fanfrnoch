@@ -1,7 +1,6 @@
-/// Where the panel puts the controls of a section: rows of cells in a number of columns, as in
-/// the approved mockup (`.planning/design/concepts/concept-2-keyboard.png`). A cell holds one
-/// control. A switch whose choices do not fit in a cell gets a row of its own, as wide as the
-/// section, below the knobs.
+/// Where the panel puts the controls of a section: rows of cells in a number of columns. A cell
+/// holds one control. A switch whose choices do not fit in a cell gets a row of its own, as wide
+/// as the section, below the knobs. (Phase 04 lays the panel out to its mockup.)
 ///
 /// The sections and their controls come from the engine (`ParameterSection`); this only places
 /// them. A control the engine adds later, or a section the panel does not know, still shows:
@@ -54,16 +53,20 @@ public struct SectionLayout: Sendable, Equatable {
         }
     }
 
-    /// The mockup's sections. Curve's choices ("There and Back") and LFO Start, for which the
-    /// mockup has no cell, get rows of their own.
+    /// The friction drum's sections, kept to about Brumle's width: two columns where a section
+    /// has pairs (Pot and Skin side by side), one for the short Hands and Noise, three for Master.
+    /// LFO Start gets a row of its own, as in Brumle's mockup.
     private static let plans: [String: (columns: Int, rows: [PlannedRow])] = [
-        "Reed": (2, [.cells(["ring", "edge"]), .cells(["offset", "body"]), .cells(["buzz", "clang"])]),
-        "Stroke": (2, [.cells(["velsens", "stroke"]), .cells(["damp", "keyup"]), .cells(["vary"])]),
-        "Mouth": (3, [.cells(["vowel", "sweep", "sweeptime"]), .cells(["reso", "throat", "throattune"]),
-                      .cells(["open", "close"]), .wide("curve")]),
-        "Breath": (2, [.cells(["breath", "puff"]), .cells(["pufftime", "air"])]),
-        "Master": (3, [.cells(["volume", "pan", "tune"]), .cells(["octave", "bendvowel", "lfo1rate"]),
-                       .cells(["lfo1shape", "lfo2rate", "lfo2shape"]), .wide("lfostart")]),
+        "Stroke": (2, [.cells(["attack", "length"]), .cells(["release", "damp"]), .cells(["velsens", "vary"]),
+                       .cells(["keyup"])]),
+        "Hands": (1, [.cells(["alternate"]), .cells(["alttune"])]),
+        "Pitch": (2, [.cells(["scoop", "scooptime"]), .cells(["drift", "drop"]), .cells(["wobble", "velpitch"]),
+                      .cells(["jump", "jumpratio"])]),
+        "Friction": (2, [.cells(["stick", "stickvel"]), .cells(["split", "creak"]), .cells(["creakrate", "creakring"])]),
+        "Body": (2, [.cells(["pot", "skin"]), .cells(["potq", "skinq"]), .cells(["potlevel", "skinlevel"]), .cells(["track"])]),
+        "Noise": (1, [.cells(["rub"]), .cells(["scrape"]), .cells(["shimmer"])]),
+        "Master": (3, [.cells(["volume", "pan", "tune"]), .cells(["octave", "bendup", "benddown"]),
+                       .cells(["drum", "lfo1rate", "lfo1shape"]), .cells(["lfo2rate", "lfo2shape"]), .wide("lfostart")]),
     ]
 }
 

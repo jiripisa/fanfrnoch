@@ -1,3 +1,4 @@
+import Accelerate
 import Foundation
 import FanfrnochDSP
 @testable import FanfrnochCore
@@ -12,8 +13,14 @@ extension EngineHarness {
     static var rate: Double { 96_000 }
     static var keyboard: Int32 { Int32(FANFRNOCH_KEYBOARD_SET) }
 
-    /// Out, no randomness.
-    static var plain: [String: Float] { ["stroke": 0, "vary": 0, "air": 0] }
+    /// The engine's output scale (`kLevel` in FanfrnochEngine.cpp) against the prototype's units.
+    static var level: Double { 0.32 }
+
+    /// No randomness: no Vary, Wobble, Shimmer, Rub or Scrape.
+    static var plain: [String: Float] { ["vary": 0, "wobble": 0, "shimmer": 0, "rub": -40, "scrape": 0] }
+
+    /// A steady stroke: no randomness, no Drift, a hand that rubs for 2 s.
+    static var steady: [String: Float] { plain.merging(["drift": 0, "length": 2000]) { $1 } }
 
     static func index(_ identifier: String) -> Int32 {
         guard let parameter = Parameters.named(identifier) else { preconditionFailure("unknown knob \(identifier)") }
@@ -80,5 +87,23 @@ extension EngineHarness {
         var difference = 0.0, signal = 0.0
         for (x, y) in zip(a, b) { difference += Double(x - y) * Double(x - y); signal += Double(y) * Double(y) }
         return 10 * log10(difference / signal)
+    }
+
+    /// The fundamental of `x` in Hz: the autocorrelation's highest peak from its first zero
+    /// crossing up to 1.5 periods of `expected`, placed between samples by a parabola. The window
+    /// keeps out an octave error (half or twice the period) without steering the answer.
+    func fundamental(_ x: [Float], rate: Double, expected: Double) -> Double {
+        let maxLag = Int(1.5 * rate / expected)
+        let length = x.count - maxLag
+        var r = [Float](repeating: 0, count: maxLag + 1)
+        x.withUnsafeBufferPointer { signal in
+            vDSP_conv(signal.baseAddress!, 1, signal.baseAddress!, 1, &r, 1, vDSP_Length(maxLag + 1), vDSP_Length(length))
+        }
+        guard let firstNegative = r.firstIndex(where: { $0 < 0 }) else { return 0 }
+        var best = firstNegative
+        for lag in firstNegative..<maxLag where r[lag] > r[best] { best = lag }
+        guard best > firstNegative && best < maxLag else { return rate / Double(best) }
+        let a = Double(r[best - 1]), b = Double(r[best]), c = Double(r[best + 1])
+        return rate / (Double(best) + 0.5 * (a - c) / (a - 2 * b + c))
     }
 }

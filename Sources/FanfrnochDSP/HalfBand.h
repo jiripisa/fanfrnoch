@@ -1,7 +1,7 @@
 // HalfBand.h - the decimator by 2 that brings the voices' doubled rate back to the host's.
 //
-// Below 88.2 kHz the voices run at twice the host rate (FanfrnochEngine.cpp), so that the reed's
-// bright bursts have room above the host's Nyquist instead of folding back into the band. This
+// Below 88.2 kHz the voices run at twice the host rate (FanfrnochEngine.cpp), so that the sharp
+// corners of the slips have room above the host's Nyquist instead of folding back into the band. This
 // filter takes that room away again: a linear-phase FIR half-band low-pass, a windowed sinc with
 // a Kaiser window, of which every second output is kept.
 //

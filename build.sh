@@ -16,6 +16,7 @@ APP_NAME="Fanfrnoch"
 BUILD_DIR="$SCRIPT_DIR/build"
 SPM_BUILD_DIR="$SCRIPT_DIR/.build"
 ICON_SOURCE="Resources/AppIcon.png"
+ICON_DOCUMENT="Resources/AppIcon.icon"
 NOTARY_PROFILE="${NOTARY_PROFILE:-notary}"
 MODE="${1:-debug}"
 
@@ -119,26 +120,42 @@ sign_sparkle() {
     done
 }
 
-# Generate .icns from PNG source
-if [ -f "$ICON_SOURCE" ]; then
-    echo "Generating app icon..."
-    ICONSET_DIR=$(mktemp -d)/${APP_NAME}.iconset
-    mkdir -p "$ICONSET_DIR"
-    sips -z 16 16     "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16.png"      > /dev/null
-    sips -z 32 32     "$ICON_SOURCE" --out "$ICONSET_DIR/icon_16x16@2x.png"   > /dev/null
-    sips -z 32 32     "$ICON_SOURCE" --out "$ICONSET_DIR/icon_32x32.png"      > /dev/null
-    sips -z 64 64     "$ICON_SOURCE" --out "$ICONSET_DIR/icon_32x32@2x.png"   > /dev/null
-    sips -z 128 128   "$ICON_SOURCE" --out "$ICONSET_DIR/icon_128x128.png"    > /dev/null
-    sips -z 256 256   "$ICON_SOURCE" --out "$ICONSET_DIR/icon_128x128@2x.png" > /dev/null
-    sips -z 256 256   "$ICON_SOURCE" --out "$ICONSET_DIR/icon_256x256.png"    > /dev/null
-    sips -z 512 512   "$ICON_SOURCE" --out "$ICONSET_DIR/icon_256x256@2x.png" > /dev/null
-    sips -z 512 512   "$ICON_SOURCE" --out "$ICONSET_DIR/icon_512x512.png"    > /dev/null
-    sips -z 1024 1024 "$ICON_SOURCE" --out "$ICONSET_DIR/icon_512x512@2x.png" > /dev/null
-    iconutil -c icns "$ICONSET_DIR" -o "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
-    rm -rf "$(dirname "$ICONSET_DIR")"
-else
-    echo "WARNING: No AppIcon.png found in Resources/. App will have no icon."
+# Compile the app icon into Assets.car, plus a fallback AppIcon.icns. macOS masks an
+# Icon Composer document to its own shape; a plain .icns that does not fill the shape
+# sits small on a light tile. The document holds no image in the repo: the full-bleed
+# master Resources/AppIcon.png goes into a temporary copy (actool does not follow a
+# symlink there). actool comes with Xcode, not with the Command Line Tools.
+echo "Compiling app icon..."
+ICON_DIR=$(mktemp -d)
+# Removed however the script ends, also when actool fails (build.sh sets no other trap).
+trap 'rm -rf "$ICON_DIR"' EXIT
+ditto "$ICON_DOCUMENT" "$ICON_DIR/AppIcon.icon"
+mkdir -p "$ICON_DIR/AppIcon.icon/Assets"
+cp "$ICON_SOURCE" "$ICON_DIR/AppIcon.icon/Assets/AppIcon.png"
+mkdir -p "$ICON_DIR/out"
+if ! ACTOOL_LOG=$(xcrun actool "$ICON_DIR/AppIcon.icon" \
+    --compile "$ICON_DIR/out" \
+    --output-format human-readable-text --notices --warnings --errors \
+    --output-partial-info-plist "$ICON_DIR/partial.plist" \
+    --app-icon AppIcon --include-all-app-icons --enable-on-demand-resources NO \
+    --development-region en --target-device mac --minimum-deployment-target 26.0 \
+    --platform macosx 2>&1); then
+    echo "$ACTOOL_LOG"
+    if echo "$ACTOOL_LOG" | grep -qiE "command line tools|requires Xcode|unable to find utility"; then
+        echo "ERROR: compiling the app icon needs Xcode, and only the Command Line Tools are selected."
+        echo "Install Xcode, then run: sudo xcode-select -s /Applications/Xcode.app"
+    else
+        echo "ERROR: actool could not compile $ICON_DOCUMENT."
+    fi
+    exit 1
 fi
+if [ ! -f "$ICON_DIR/out/Assets.car" ] || [ ! -f "$ICON_DIR/out/AppIcon.icns" ]; then
+    echo "$ACTOOL_LOG"
+    echo "ERROR: actool did not write Assets.car and AppIcon.icns."
+    exit 1
+fi
+cp "$ICON_DIR/out/Assets.car" "$ICON_DIR/out/AppIcon.icns" "$APP_BUNDLE/Contents/Resources/"
+rm -rf "$ICON_DIR"
 
 # Create PkgInfo
 echo -n "APPL????" > "$APP_BUNDLE/Contents/PkgInfo"

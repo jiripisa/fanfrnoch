@@ -3,15 +3,15 @@ import FanfrnochCore
 
 /// The sixteen pads, 4 × 4, pad 01 top left. A click selects a pad and hits
 /// it: soft near its top, firmer further down (`KeyStrip`); letting go ends
-/// the note. Each tile shows the pad's number and name, its pitch and its
-/// group; the selected pad has an aurora outline, and a pad lights up for a
+/// the note. Each tile shows the pad's number, and its name over its pitch and
+/// group; the selected pad has a terracotta outline, and a pad lights up for a
 /// moment whenever it is hit, from the screen or from MIDI.
 struct PadGridView: View {
 
     let model: any InstrumentModel
 
-    static let rowHeight: CGFloat = 51
-    static let spacing: CGFloat = 6
+    static let rowHeight: CGFloat = 35
+    static let spacing: CGFloat = 5
     /// The grid's height: four rows and the gaps between them.
     static var height: CGFloat { CGFloat(PadGrid.rows) * rowHeight + CGFloat(PadGrid.rows - 1) * spacing }
 
@@ -22,7 +22,7 @@ struct PadGridView: View {
     var body: some View {
         // The counters the panel's 40 ms refresh brings up to date.
         let hits = (0..<PadGrid.rows * PadGrid.columns).map(model.padHits)
-        Grid(horizontalSpacing: Self.spacing, verticalSpacing: Self.spacing) {
+        Grid(horizontalSpacing: Self.spacing + 2, verticalSpacing: Self.spacing) {
             ForEach(0..<PadGrid.rows, id: \.self) { row in
                 GridRow {
                     ForEach(0..<PadGrid.columns, id: \.self) { column in
@@ -49,7 +49,7 @@ struct PadGridView: View {
     }
 }
 
-/// One pad on glass: "05 Zambomba" over "C2  G1".
+/// One pad, a tile of blue glass colour on the footer's card: "05 | Cuíca Whoop" over "B2  G4".
 private struct PadTile: View {
 
     let pad: Int
@@ -61,40 +61,44 @@ private struct PadTile: View {
     /// True while the mouse is down; SwiftUI puts it back however the press stops.
     @GestureState private var pressing = false
 
-    private static let corner: CGFloat = 10
+    private static let corner: CGFloat = 9
 
     var body: some View {
         let selected = model.selectedPad == pad
         let name = model.padName(pad)
-        VStack(spacing: 3) {
-            HStack(spacing: 6) {
-                Text(PadLabel.number(pad))
+        HStack(spacing: 9) {
+            Text(PadLabel.number(pad))
+                .font(.system(size: 19, weight: .semibold, design: .serif).monospacedDigit())
+                .foregroundStyle(Artwork.cream)
+                .frame(width: 26)
+            Rectangle()
+                .fill(Artwork.cream.opacity(0.3))
+                .frame(width: 1, height: 24)
+            VStack(alignment: .leading, spacing: 0) {
                 Text(name)
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .foregroundStyle(Artwork.cream)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text(PadLabel.pitchAndGroup(note: model.padNote(pad), group: model.padGroup(pad)))
+                    .font(.system(size: 11, weight: .medium).monospacedDigit())
+                    .foregroundStyle(Artwork.parchment)
             }
-            .font(.system(size: 17, weight: .semibold, design: .serif))
-            .foregroundStyle(Artwork.silver)
-            .lineLimit(1)
-            Text(PadLabel.pitchAndGroup(note: model.padNote(pad), group: model.padGroup(pad)))
-                .font(.system(size: 12).monospacedDigit())
-                .foregroundStyle(Artwork.bone)
+            Spacer(minLength: 0)
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
         .frame(maxWidth: .infinity)
         .frame(height: PadGridView.rowHeight)
-        // The outline is part of what the glass carries, as the name is: inside the footer's
-        // GlassEffectContainer an overlay after the glass is drawn under it and does not show.
+        .background(lit ? Artwork.terracotta.opacity(0.55) : Artwork.glass.opacity(0.75),
+                    in: .rect(cornerRadius: Self.corner))
         .overlay {
-            if selected {
-                RoundedRectangle(cornerRadius: Self.corner)
-                    .strokeBorder(Artwork.aurora, lineWidth: 2)
-                    .shadow(color: Artwork.aurora.opacity(0.6), radius: 4)
-                    .allowsHitTesting(false)
-            }
+            RoundedRectangle(cornerRadius: Self.corner)
+                .strokeBorder(selected ? Artwork.terracotta : Artwork.cream.opacity(0.16), lineWidth: selected ? 2 : 1)
+                .shadow(color: selected ? Artwork.terracotta.opacity(0.7) : .clear, radius: 4)
+                .allowsHitTesting(false)
         }
         .contentShape(.rect(cornerRadius: Self.corner))
-        .glassEffect(.regular.tint(lit ? Artwork.aurora.opacity(0.6) : Artwork.midnight.opacity(0.35)).interactive(),
-                     in: .rect(cornerRadius: Self.corner))
-        .shadow(color: lit ? Artwork.aurora.opacity(0.8) : .clear, radius: 10)
+        .shadow(color: lit ? Artwork.terracotta.opacity(0.8) : .clear, radius: 8)
         .gesture(hit)
         .onChange(of: pressing) { _, isPressing in
             if !isPressing { release() }

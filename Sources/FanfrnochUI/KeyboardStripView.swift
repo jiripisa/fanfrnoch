@@ -4,7 +4,7 @@ import FanfrnochCore
 /// Three octaves of keys, C2 to B4, for playing the keyboard's sound with the
 /// mouse. Where a key is pressed sets the velocity: soft near the top, firmer
 /// further down (`KeyStrip`). A key sounds while the mouse holds it, tinted
-/// aurora, and stops when the mouse lets go or leaves it.
+/// terracotta, and stops when the mouse lets go or leaves it.
 struct KeyboardStripView: View {
 
     let model: any InstrumentModel
@@ -43,16 +43,16 @@ struct KeyboardStripView: View {
 
     private func whiteKey(_ key: KeyboardLayout.Key) -> some View {
         UnevenRoundedRectangle(bottomLeadingRadius: 4, bottomTrailingRadius: 4)
-            .fill(held == key.note ? Artwork.aurora : Artwork.bone)
+            .fill(held == key.note ? Artwork.terracotta : Artwork.cream)
             .overlay {
                 UnevenRoundedRectangle(bottomLeadingRadius: 4, bottomTrailingRadius: 4)
-                    .strokeBorder(Artwork.midnight.opacity(0.45), lineWidth: 0.75)
+                    .strokeBorder(Artwork.indigo.opacity(0.45), lineWidth: 0.75)
             }
             .overlay(alignment: .bottomLeading) {
                 if let label = KeyboardLayout.label(key.note) {
                     Text(label)
                         .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(Artwork.midnight.opacity(0.65))
+                        .foregroundStyle(Artwork.indigo.opacity(0.7))
                         .padding(.leading, 6)
                         .padding(.bottom, 5)
                 }
@@ -63,10 +63,10 @@ struct KeyboardStripView: View {
 
     private func blackKey(_ key: KeyboardLayout.Key) -> some View {
         UnevenRoundedRectangle(bottomLeadingRadius: 3, bottomTrailingRadius: 3)
-            .fill(held == key.note ? Artwork.aurora : Artwork.midnight)
+            .fill(held == key.note ? Artwork.terracotta : Artwork.indigo)
             .overlay {
                 UnevenRoundedRectangle(bottomLeadingRadius: 3, bottomTrailingRadius: 3)
-                    .strokeBorder(Artwork.silver.opacity(0.25), lineWidth: 0.75)
+                    .strokeBorder(Artwork.cream.opacity(0.25), lineWidth: 0.75)
             }
             .shadow(color: .black.opacity(0.4), radius: 1.5, y: 1.5)
             .frame(width: key.width, height: key.height)

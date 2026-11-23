@@ -19,11 +19,11 @@ struct HeaderView<Trailing: View>: View {
     /// the header stands still. A menu button takes its width from the ticked
     /// item's name, whatever its label says, so the menu itself gets the width
     /// and fills it (`buttonSizing(.flexible)`). 150 lets the header fit the
-    /// panel with the app's Settings button (measured: 1055 of 1080 points).
+    /// panel with the app's Settings button.
     static var menuWidth: CGFloat { 150 }
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 12) {
             wordmark
             separator
             HStack(spacing: 10) {
@@ -45,7 +45,7 @@ struct HeaderView<Trailing: View>: View {
                         }
                     }
             }
-            Spacer(minLength: 16)
+            Spacer(minLength: 8)
             GlassSegments(label: "Mode", titles: ["Keyboard", "Pads"], selected: model.mode.rawValue, fontSize: 13) { index in
                 model.mode = PlayMode(rawValue: index) ?? .keyboard
             }
@@ -65,24 +65,22 @@ struct HeaderView<Trailing: View>: View {
             .fixedSize()
             trailing
         }
-        .frame(height: 48)
+        .frame(height: 44)
     }
 
     private var wordmark: some View {
         HStack(spacing: 10) {
-            if let logo = Artwork.logo {
-                Image(nsImage: logo).resizable().interpolation(.high).aspectRatio(contentMode: .fit).frame(height: 40)
-            }
+            LogoView().frame(width: LogoView.width(height: 38), height: 38)
             Text("Fanfrnoch")
-                .font(.system(size: 34, weight: .semibold, design: .serif))
-                .foregroundStyle(Artwork.silver)
+                .font(.system(size: 32, weight: .semibold, design: .serif))
+                .foregroundStyle(Artwork.cream)
         }
         .fixedSize()
         .accessibilityElement(children: .combine)
     }
 
     private var separator: some View {
-        Rectangle().fill(Artwork.silver.opacity(0.25)).frame(width: 1, height: 34)
+        Rectangle().fill(Artwork.cream.opacity(0.3)).frame(width: 1, height: 34)
     }
 
     /// A menu with its name above it.
@@ -90,7 +88,7 @@ struct HeaderView<Trailing: View>: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Artwork.bone)
+                .foregroundStyle(Artwork.cream)
                 .padding(.leading, 6)
             menu()
         }
@@ -155,8 +153,7 @@ struct HeaderView<Trailing: View>: View {
     /// A button that turns the knobs into a source's amounts (or their
     /// controllers) and back: its colour as a dot, and filled with it while it
     /// is on. The fill sits under the glass rather than tinting it: a tint
-    /// turns grey in a window that is not in front (a plug-in's, in a host),
-    /// and icy silver read as switched off.
+    /// turns grey in a window that is not in front (a plug-in's, in a host).
     private func sourceButton(_ title: String, _ source: KnobEditing, help: String) -> some View {
         let on = editing == source
         return Button {
@@ -164,11 +161,11 @@ struct HeaderView<Trailing: View>: View {
             editing = on ? .value : source
         } label: {
             HStack(spacing: 6) {
-                Circle().fill(on ? Artwork.midnight.opacity(0.7) : source.colour).frame(width: 7, height: 7)
+                Circle().fill(on ? Artwork.indigo.opacity(0.7) : source.colour).frame(width: 7, height: 7)
                 Text(title)
             }
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(on ? Artwork.midnight : Artwork.silver)
+            .foregroundStyle(on ? Artwork.indigo : Artwork.cream)
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .contentShape(Capsule())
@@ -183,7 +180,7 @@ struct HeaderView<Trailing: View>: View {
 }
 
 /// A file's error, for a while, in a small capsule under the header's menus:
-/// bone on midnight, one line.
+/// cream on indigo, one line.
 struct ErrorLine: View {
 
     let message: String
@@ -191,12 +188,12 @@ struct ErrorLine: View {
     var body: some View {
         Text(message)
             .font(.system(size: 12, weight: .semibold))
-            .foregroundStyle(Artwork.bone)
+            .foregroundStyle(Artwork.cream)
             .lineLimit(1)
             .padding(.horizontal, 10)
             .padding(.vertical, 4)
-            .background(Artwork.midnight.opacity(0.92), in: Capsule())
-            .overlay(Capsule().stroke(Artwork.bone.opacity(0.35), lineWidth: 1))
+            .background(Artwork.indigo.opacity(0.92), in: Capsule())
+            .overlay(Capsule().stroke(Artwork.terracotta.opacity(0.6), lineWidth: 1))
             .fixedSize()
             .allowsHitTesting(false)            // it hangs over the controls below
             .accessibilityElement()

@@ -37,7 +37,7 @@ struct ContentView: View {
         } label: {
             Image(systemName: "gearshape")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Artwork.silver)
+                .foregroundStyle(Artwork.cream)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 6)
                 .contentShape(Capsule())

@@ -24,7 +24,7 @@ struct PresetFileTests {
         try write(#"{"values":{"pot":50}}"#, as: "No program", in: library)
         try write(#"{"program":3}"#, as: "No values", in: library)
         try write("{}", as: "Empty", in: library)
-        try write(#"{"program":2,"values":{"pot":50,"from-the-future":1},"preset":"Old name","midi":[1,2],"colour":"aurora"}"#,
+        try write(#"{"program":2,"values":{"pot":50,"from-the-future":1},"preset":"Old name","midi":[1,2],"colour":"terracotta"}"#,
                   as: "Future", in: library)
 
         #expect(try library.load("No program") == SetState(program: 0, values: ["pot": 50]))

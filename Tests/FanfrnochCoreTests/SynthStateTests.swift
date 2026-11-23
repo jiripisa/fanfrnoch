@@ -150,7 +150,7 @@ struct SynthStateTests {
             keyboard["midiMappings"] = [1, 2, 3]
             object["keyboard"] = keyboard
             var pads = try #require(object["pads"] as? [[String: Any]])
-            pads[2]["colour"] = "aurora"
+            pads[2]["colour"] = "terracotta"
             object["pads"] = pads
         }
         #expect(loaded == saved)

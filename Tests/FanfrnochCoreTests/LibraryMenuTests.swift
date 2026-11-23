@@ -10,21 +10,21 @@ struct LibraryMenuTests {
 
     @Test("The Preset menu: the presets, the one in use ticked, then Save as… and Delete with every preset")
     func presetMenu() {
-        let entries = LibraryMenu.presets(["Bright", "dark drone", "Zambomba 2"], inUse: "dark drone")
+        let entries = LibraryMenu.presets(["Bright", "slow growl", "Zambomba 2"], inUse: "slow growl")
         #expect(entries == [
             .file("Bright", ticked: false),
-            .file("dark drone", ticked: true),
+            .file("slow growl", ticked: true),
             .file("Zambomba 2", ticked: false),
             .divider,
             .save("Save as…"),
-            .delete("Delete", names: ["Bright", "dark drone", "Zambomba 2"]),
+            .delete("Delete", names: ["Bright", "slow growl", "Zambomba 2"]),
         ])
     }
 
     @Test("The preset in use is ticked whatever its capitals")
     func tickIgnoresCapitals() {
-        #expect(LibraryMenu.presets(["Dark Drone"], inUse: "dark drone").first == .file("Dark Drone", ticked: true))
-        #expect(LibraryMenu.presets(["Dark Drone"], inUse: nil).first == .file("Dark Drone", ticked: false))
+        #expect(LibraryMenu.presets(["Slow Growl"], inUse: "slow growl").first == .file("Slow Growl", ticked: true))
+        #expect(LibraryMenu.presets(["Slow Growl"], inUse: nil).first == .file("Slow Growl", ticked: false))
     }
 
     @Test("With no presets the menu only saves: no divider, nothing to delete")
@@ -64,8 +64,8 @@ struct LibraryMenuTests {
 
     @Test("A new name is saved as the file will carry it, without a question")
     func newName() {
-        let check = NameCheck("  Drone/low  ", among: ["Bright"])
-        #expect(check == .new("Drone-low"))
+        let check = NameCheck("  Growl/low  ", among: ["Bright"])
+        #expect(check == .new("Growl-low"))
         #expect(check.canSave)
         #expect(check.question == nil)
     }
@@ -80,9 +80,9 @@ struct LibraryMenuTests {
 
     @Test("What is saved is the name as cleaned, in the capitals typed; presets and kits share the rule")
     func savedName() {
-        #expect(NameCheck.cleaned("  low/drone ") == "low-drone")
+        #expect(NameCheck.cleaned("  low/growl ") == "low-growl")
         #expect(NameCheck.cleaned(" . ") == nil)
-        for typed in ["  low/drone ", "a:b", ".hidden", String(repeating: "x", count: 70), "\tTab"] {
+        for typed in ["  low/growl ", "a:b", ".hidden", String(repeating: "x", count: 70), "\tTab"] {
             #expect(KitLibrary.cleaned(typed) == PresetLibrary.cleaned(typed))
             #expect(NameCheck.cleaned(typed) == PresetLibrary.cleaned(typed))
         }

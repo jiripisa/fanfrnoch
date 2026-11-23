@@ -48,7 +48,7 @@ struct NameSheetView: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(title)
                 .font(.system(size: 17, weight: .semibold, design: .serif))
-                .foregroundStyle(Artwork.silver)
+                .foregroundStyle(Artwork.cream)
             TextField("Name", text: $name)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 260)
@@ -58,7 +58,7 @@ struct NameSheetView: View {
             if asking, let question = check.question {
                 Text(question)
                     .font(.system(size: 13))
-                    .foregroundStyle(Artwork.bone)
+                    .foregroundStyle(Artwork.parchment)
                 HStack {
                     Spacer()
                     Button("Cancel") {
@@ -68,11 +68,12 @@ struct NameSheetView: View {
                     .keyboardShortcut(.cancelAction)
                     Button("Replace") { finish() }
                         .keyboardShortcut(.defaultAction)
+                        .tint(Artwork.terracotta)
                 }
             } else {
                 Text(note)
                     .font(.system(size: 11))
-                    .foregroundStyle(Artwork.silver.opacity(0.7))
+                    .foregroundStyle(Artwork.cream.opacity(0.7))
                     .frame(width: 260, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
                 HStack {
@@ -82,6 +83,7 @@ struct NameSheetView: View {
                     Button("Save", action: saveOrAsk)
                         .keyboardShortcut(.defaultAction)
                         .disabled(!check.canSave)
+                        .tint(Artwork.terracotta)
                 }
             }
         }

@@ -2,7 +2,7 @@ import AppKit
 import SwiftUI
 
 /// The panel's artwork (Resources/Art, copied into the bundle by build.sh) and its colours: the
-/// palette of concept 2, "Polar Khomus".
+/// palette of concept 1, "Modrotisk".
 @MainActor
 public enum Artwork {
 
@@ -13,8 +13,8 @@ public enum Artwork {
 
     /// Leather, bone and fur behind the whole panel.
     public static let background = image("background")
-    /// The silver khomus over its bone strap, for the footer.
-    public static let khomus = image("khomus")
+    /// The fanfrnoch: a terracotta jug, its bladder and two tufts of horsehair, for the footer.
+    public static let drum = image("drum")
     /// The emblem beside the wordmark.
     public static let logo = image("logo")
     /// A knob's brushed-metal cap, without a pointer: the cap stands still and the pointer is drawn.

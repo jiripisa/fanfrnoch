@@ -1,7 +1,7 @@
 import SwiftUI
 import FanfrnochCore
 
-/// Beside the pads: the khomus, "Pads", which pad is selected, its pitch and
+/// Beside the pads: the drum, "Pads", which pad is selected, its pitch and
 /// mute group, and the Kit menu. The pitch and the group belong to the pad,
 /// not to its knobs; a kit is all sixteen pads, their sounds, pitches and
 /// groups.
@@ -12,7 +12,7 @@ struct PadInspectorView: View {
     var body: some View {
         let pad = model.selectedPad
         VStack(spacing: 6) {
-            KhomusView()
+            DrumView()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             OrnamentBand()
             HStack(alignment: .firstTextBaseline, spacing: 12) {

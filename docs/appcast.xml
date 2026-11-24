@@ -4,5 +4,14 @@
     <title>Fanfrnoch</title>
     <link>https://jiripisa.github.io/fanfrnoch/</link>
     <description>Fanfrnoch updates</description>
+    <item>
+      <title>Fanfrnoch 1.0.0</title>
+      <sparkle:version>1.0.0</sparkle:version>
+      <sparkle:shortVersionString>1.0.0</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>26.0</sparkle:minimumSystemVersion>
+      <pubDate>Tue, 24 Nov 2026 00:05:47 +0000</pubDate>
+      <description><![CDATA[<ul><li>First version.</li><li>Requires macOS 26 or later.</li><li>Sound engine: a synthesized friction drum (the Czech fanfrnoch and its relatives, from the Brummtopf to the cuíca) in keyboard and pad mode, twelve programs and a default kit; a stroke on a drum that sounds runs on from where the head is.</li><li>The app plays Fanfrnoch: from MIDI or the on-screen keyboard and pads, through the audio output you choose.</li><li>Drum One plays every key on one drum, as with one fanfrnoch in your hands; Drum Many gives every note a drum of its own.</li><li>Sixteen pads (notes 36–51), each with a sound and a pitch of its own; the pads of a group are one drum, played by one pair of hands.</li><li>Send to pad copies the keyboard&#x27;s sound, at the last note played, to a pad.</li><li>Presets (one sound) and kits (all sixteen pads), shared by the app and the plug-in.</li><li>LFO 1, LFO 2 and VEL amounts are set on the knobs themselves; a MIDI controller on every knob and switch, which can learn another with a click.</li><li>Audio Unit instrument with the app&#x27;s window, installed from the app&#x27;s Settings.</li><li>The &quot;Modrotisk&quot; look: indigo blueprint cloth, cream floral ornament, a terracotta jug and Liquid Glass cards.</li><li>The app icon: the terracotta fanfrnoch on indigo modrotisk cloth, filling the whole icon shape.</li></ul>]]></description>
+      <enclosure url="https://github.com/jiripisa/fanfrnoch/releases/download/v1.0.0/Fanfrnoch-1.0.0.dmg" type="application/octet-stream" sparkle:edSignature="ebBYfWJPSfloPOthsGBqtmLLpLHpIPxr8FlYlMGIqoLbCZC/d/NMZizgbrzpabQdu1WihQYCKFhFKfppCx6aDw==" length="17599599"/>
+    </item>
   </channel>
 </rss>

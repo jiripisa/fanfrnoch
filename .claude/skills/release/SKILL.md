@@ -20,8 +20,8 @@ conversation.
 
 1. `git status` clean, on `main`, up to date. Create the branch `feature/NN-vX.Y.Z-release`
    (NN = next phase number from `.planning/ROADMAP.md`).
-2. Pick the version. The **first release is 0.1.0** (the version the skeleton
-   already carries and the website links point at). After that: patch for
+2. Pick the version. The **first release was 1.0.0** (the version the website
+   links pointed at from the start). After that: patch for
    fixes and small additions, minor for new features or removed UI, major only
    when the user says so. Say which and why.
 3. `CHANGELOG.md`: rename `## Unreleased` to `## X.Y.Z — YYYY-MM-DD`. If there

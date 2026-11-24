@@ -1,4 +1,4 @@
-/* Manual layout on top of site.css: contents column + text, and marked
+/* Fanfrnoch — Indigo Modrotisk manual: contents column + text, and marked
    screenshots. Load site.css first. */
 .title { padding-block: clamp(2rem, 6vw, 4rem) 1rem; }
 .title h1 { margin: 0; color: var(--ink); font-size: clamp(2.6rem, 8vw, 5rem); line-height: 1; letter-spacing: -.02em; }
@@ -78,7 +78,7 @@ dl.controls dd { margin: .2rem 0 0; }
   .toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 8px; padding: 1rem; }
 }
 
-/* Polar Khomus reading surface; marked-figure geometry stays unchanged. */
+/* Fanfrnoch reading surface; marked-figure geometry stays unchanged. */
 .title { padding-bottom: 3rem; }
 .title h1 { color: var(--ink); font-weight: 500; }
 .toc { padding-top: .5rem; }

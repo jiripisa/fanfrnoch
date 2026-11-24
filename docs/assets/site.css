@@ -1,13 +1,14 @@
-/* Polar Khomus: shared by both languages and the manual. */
+/* Fanfrnoch — Indigo Modrotisk: shared by both languages and the manual. */
 :root {
-  --bg: #111c29;
-  --panel: #1a2b3b;
-  --line: #354a59;
-  --ink: #e9dec4;
-  --ink2: #cbdce4;
-  --ink3: #a4b8c5;
-  --accent: #67d6d3;
-  --accent-ink: #111c29;
+  --bg: #101d38;
+  --panel: #233653;
+  --line: #3d4a60;
+  --ink: #f6ecd8;
+  --ink2: #e5d8be;
+  --ink3: #dbc79f;
+  --accent: #e8a577;
+  --clay: #d88c5b;
+  --accent-ink: #101d38;
   --display: "New York", ui-serif, Georgia, serif;
   --measure: 44rem;
   --gutter: clamp(1.25rem, 4vw, 3rem);
@@ -22,7 +23,7 @@ body {
   font: 1.0625rem/1.65 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 a { color: var(--accent); text-underline-offset: .22em; }
-a:hover { color: #a0eeeb; }
+a:hover { color: var(--ink); }
 a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 5px; border-radius: 3px; }
 code, kbd, pre { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: .9em; }
 code { color: var(--ink2); }
@@ -40,33 +41,35 @@ h1, h2, h3 { font-family: var(--display); font-weight: 500; }
 .masthead nav a.lang { padding: .2rem .65rem; border: 1px solid var(--line); border-radius: 5px; font-size: .85rem; }
 
 .hero { padding-top: 1rem; padding-bottom: 5rem; }
-.hero-intro { position: relative; isolation: isolate; display: flex; align-items: center; min-height: 35rem; }
+.hero-intro { position: relative; isolation: isolate; display: flex; align-items: center; min-height: 36rem; }
 .hero-art { position: absolute; z-index: -2; width: calc(100% + 6rem); max-width: none; height: 100%; left: -3rem; object-fit: cover; object-position: center; }
 .hero-intro::after { content: ""; position: absolute; inset: 0 -3rem; z-index: -1; background: linear-gradient(90deg, var(--bg) 0%, transparent 18%, transparent 88%, var(--bg)), linear-gradient(0deg, var(--bg), transparent 17%, transparent 90%, var(--bg)); pointer-events: none; }
-.hero-copy { width: 35%; padding-block: 3rem; }
-.hero h1 { margin: 0; color: var(--ink); font-size: clamp(4.5rem, 8.8vw, 8rem); line-height: 1.03; letter-spacing: -.045em; }
+.hero-copy { width: 48%; padding-block: 3rem; }
+.hero h1 { margin: 0; color: var(--ink); font-size: clamp(4.5rem, 8.2vw, 7.4rem); line-height: 1.03; letter-spacing: -.045em; }
 .lede { max-width: 29rem; margin: 1.5rem 0 0; font-size: 1.22rem; line-height: 1.65; text-wrap: pretty; }
 .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin-top: 2rem; }
-.button { display: inline-flex; justify-content: center; align-items: center; gap: .65rem; min-height: 3.25rem; padding: .8rem 1.35rem; border: 1px solid #91e4e1; border-radius: 7px; background: var(--accent); color: var(--accent-ink); font-weight: 650; text-decoration: none; box-shadow: 0 3px 18px #0003; }
-.button:hover { background: #96e6e2; color: var(--accent-ink); }
+.button { display: inline-flex; justify-content: center; align-items: center; gap: .65rem; min-height: 3.25rem; padding: .8rem 1.35rem; border: 1px solid #edb68e; border-radius: 7px; background: var(--clay); color: var(--accent-ink); font-weight: 650; text-decoration: none; box-shadow: 0 3px 18px #0003; }
+.button:hover { background: var(--accent); color: var(--accent-ink); }
 .button svg { width: 1.1rem; height: 1.1rem; }
 .meta { color: var(--ink3); font-size: .86rem; }
 .hero .meta { max-width: 25rem; }
-.shot { margin: 1rem auto 0; max-width: 65rem; }
+.shot { margin: 1.5rem auto 0; max-width: 65rem; }
 .shot img { display: block; width: 100%; border-radius: 12px; box-shadow: 0 22px 65px #0006, 0 0 0 1px var(--line); }
 
 section { padding-block: 4.5rem; border-top: 1px solid var(--line); }
 main > section { position: relative; }
-main > section::before { content: ""; display: block; position: absolute; top: -9px; left: 50%; transform: translateX(-50%); width: min(26rem, 70%); height: 18px; background: var(--bg) url("ornament.png") repeat-x center / auto 18px; }
+main > section::before { content: ""; display: block; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: min(32rem, 80%); height: 32px; background: var(--bg) url("ornament.png") no-repeat center / auto 32px; }
 section h2 { margin: 0 0 1.5rem; color: var(--ink); font-size: clamp(2rem, 3.5vw, 3rem); line-height: 1.15; letter-spacing: -.02em; }
 section p, section li { max-width: var(--measure); }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2.5rem 5rem; }
 .grid h3 { margin: 0 0 .65rem; color: var(--ink); font-size: 1.65rem; line-height: 1.25; }
 .grid p { margin-block: .7rem 0; }
 #features h2 { margin-bottom: 2.5rem; }
-#get { background: #152332; }
+#get { background: #172641; }
+/* The divider sits half on the section above and half on this one. */
+#get::before { background: url("ornament.png") no-repeat center / auto 32px, linear-gradient(var(--bg) 50%, #172641 50%); }
 #get .actions { margin-top: 1.5rem; margin-bottom: 1.5rem; }
-pre { overflow-x: auto; padding: 1.25rem; border-radius: 7px; background: #111c29; border: 1px solid var(--line); color: var(--ink2); font-size: .82rem; }
+pre { overflow-x: auto; padding: 1.25rem; border-radius: 7px; background: var(--bg); border: 1px solid var(--line); color: var(--ink2); font-size: .82rem; }
 footer { padding-block: 2rem 2.5rem; color: var(--ink3); font-size: .9rem; border-top: 1px solid var(--line); }
 footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1rem; }
 footer a { color: var(--ink2); }
@@ -78,13 +81,13 @@ footer a { color: var(--ink2); }
   .brand { font-size: 1.5rem; }
   .brand img { width: 2.3rem; height: 2.3rem; }
   .hero { padding-top: 0; padding-bottom: 3rem; }
-  .hero-intro { display: flex; flex-direction: column-reverse; min-height: 0; }
-  .hero-copy { width: 100%; padding: 2.75rem 0 .5rem; }
-  .hero h1 { font-size: clamp(4.5rem, 16vw, 6rem); }
+  .hero-intro { display: flex; flex-direction: column; min-height: 0; }
+  .hero-copy { width: 100%; padding: 1.5rem 0 .5rem; }
+  .hero h1 { font-size: clamp(3.5rem, 15vw, 6rem); }
   .lede { max-width: 32rem; font-size: 1.1rem; margin-top: 1.25rem; }
   .hero .actions { margin-top: 1.5rem; gap: 1rem; }
-  .hero-art { position: relative; z-index: 0; left: auto; width: calc(100% + 2 * var(--gutter)); height: 16rem; object-position: right center; }
-  .hero-intro::after { inset: auto calc(-1 * var(--gutter)) 0; height: 16rem; z-index: 1; background: linear-gradient(0deg, var(--bg), transparent 22%, transparent 85%, var(--bg)); }
+  .hero-art { position: relative; z-index: -2; left: auto; width: calc(100% + 2 * var(--gutter)); height: clamp(17rem, 45vw, 24rem); object-position: right center; }
+  .hero-intro::after { inset: 0 calc(-1 * var(--gutter)) auto; height: clamp(17rem, 45vw, 24rem); z-index: -1; background: linear-gradient(0deg, var(--bg), transparent 16%, transparent 90%, var(--bg)); }
   .shot { margin-top: 1rem; }
   section { padding-block: 3rem; }
   .grid { gap: 2rem; grid-template-columns: minmax(0, 1fr); }

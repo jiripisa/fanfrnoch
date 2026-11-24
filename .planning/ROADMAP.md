@@ -6,7 +6,7 @@ Phases, newest first. One phase = one folder in `phases/`, one branch, one
 | Phase | Goal | Status |
 |---|---|---|
 | 06-v1.0.0-release | Signed and notarized DMG, appcast, GitHub repo and Release, Pages, catalog (pushes only after the author's OK) | ⏳ |
-| 05-icon-website | App icon and website look by Codex, manual screenshots | ⏳ |
+| 05-icon-website | Codex's icon compiled with actool (Icon Composer document, `Assets.car`, `CFBundleIconName`); the overview rewritten for the friction drum in English and Czech; the website look by Codex (hero jug, floral divider, Modrotisk palette); the real app's window — built on `feature/05-icon-website` 2026-11-24, not merged yet | ✅ |
 | 04-app-and-audiounit | The Modrotisk panel of the mockups (two rows of cards, Master on the right, the upright drum in both footers), presets/kits/MIDI learn checked in the real app, auval, manual EN + CS with pictures of the real app — built on `feature/04-app-and-audiounit` 2026-11-24, not merged yet | ✅ |
 | 03-panel-design | Codex concept 1 "Modrotisk" chosen of two; background, drum, logo, knob cap, ornament — 2026-11-23 | ✅ |
 | 02-engine | `FanfrnochDSP`: the slip-clock friction drum of the approved prototype, drums, programs, regression tests — built on `feature/02-engine` 2026-11-23, not merged yet | ✅ |

@@ -2,8 +2,10 @@
 
 ## 1. Toolchain & Project Layout
 
-- Xcode command line tools (Swift 6.2), macOS 26+. No Xcode project: Swift
-  Package Manager builds the code, `build.sh` assembles the `.app` bundle.
+- Xcode (Swift 6.2), macOS 26+. The Command Line Tools alone are not enough,
+  because `actool`, which compiles the app icon, comes with Xcode. No Xcode
+  project: Swift Package Manager builds the code, `build.sh` assembles the
+  `.app` bundle.
 
 ```
 fanfrnoch/
@@ -16,7 +18,8 @@ fanfrnoch/
 ├── Sources/FanfrnochAUView/    # the Audio Unit's window in a host
 ├── Sources/FanfrnochAUExports/ # no code: what the Audio Unit's library exports (Package.swift)
 ├── Tests/FanfrnochCoreTests/   # Swift Testing
-├── Resources/               # Info.plist, entitlements, AppIcon.png (1024 px)
+├── Resources/               # Info.plist, entitlements, AppIcon.png (1024 px master),
+│                            # AppIcon.icon (Icon Composer document), Art/
 ├── scripts/make_appcast.py  # Sparkle feed, called by build.sh dist
 ├── docs/                    # GitHub Pages website + manual
 ├── build.sh                 # debug | release | dist | clean
@@ -35,7 +38,8 @@ fanfrnoch/
 ### 2.1 App-bundle assembly (all modes)
 
 Executable → `Contents/MacOS`, `Resources/Info.plist` → `Contents/`,
-`Resources/AppIcon.png` → `AppIcon.icns` (sips + iconutil), Sparkle.framework →
+the app icon → `Contents/Resources/Assets.car` and a fallback `AppIcon.icns`
+(actool, see 2.1.1), Sparkle.framework →
 `Contents/Frameworks` (XPC services removed; the app is unsandboxed), PkgInfo,
 then an ad-hoc signature with the entitlements; a signature that fails stops
 the build. New resource files must be copied in `build.sh` explicitly.
@@ -61,6 +65,36 @@ Check a build of the plug-in with Apple's validator:
 cp -R build/release/Fanfrnoch.app/Contents/PlugIns/Fanfrnoch.component ~/Library/Audio/Plug-Ins/Components/
 auval -v aumu Fanf JPis        # must end with AU VALIDATION SUCCEEDED
 ```
+
+### 2.1.1 App icon (actool)
+
+- `Resources/AppIcon.png` is the master: 1024 px, full bleed and opaque (no
+  transparent corners, no own squircle). macOS 26 masks it to the icon shape.
+  A plain `.icns` that does not fill the shape is put small on a light tile,
+  which is why the icon is not built with `sips` + `iconutil`.
+- `Resources/AppIcon.icon` is an Icon Composer document (`icon.json`: one
+  layer, glass, shadow, translucency and specular off, an indigo fill) that
+  holds no image in the repo. `build.sh` copies it to a temporary folder and
+  puts the master in as `Assets/AppIcon.png`; actool does not follow a symlink
+  there.
+- One actool call compiles it into `Contents/Resources/Assets.car` and a
+  fallback `AppIcon.icns` before anything is signed, in every mode (so `dist`
+  ships the same icon as `release`):
+  ```
+  xcrun actool <tmp>/AppIcon.icon --compile <tmp>/out \
+    --output-format human-readable-text --notices --warnings --errors \
+    --output-partial-info-plist <tmp>/partial.plist \
+    --app-icon AppIcon --include-all-app-icons --enable-on-demand-resources NO \
+    --development-region en --target-device mac --minimum-deployment-target 26.0 \
+    --platform macosx
+  ```
+  `Info.plist` carries what the partial plist asks for: `CFBundleIconName`
+  and `CFBundleIconFile`, both `AppIcon`. Without Xcode (only the Command
+  Line Tools selected) the build stops with a hint to run
+  `sudo xcode-select -s /Applications/Xcode.app`.
+- `docs/assets/icon.png` (256 px, the system's squircle applied) is drawn from
+  the same artwork; regenerate it when the master changes. The art, its prompt
+  and Codex's notes: `.planning/design/icon/`.
 
 ### 2.2 Distribution (`dist`)
 

@@ -9,7 +9,8 @@ Website and manual: https://jiripisa.github.io/fanfrnoch/
 
 ## Build and run
 
-You need the Xcode command line tools.
+You need Xcode (for `actool`, which compiles the app icon; the command line
+tools alone are not enough).
 
 ```
 ./run.sh            # debug build, runs in the terminal with logs (Ctrl+C quits)

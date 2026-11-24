@@ -1,5 +1,13 @@
 # Fanfrnoch — State
 
+- 2026-11-24 — phase 05 (icon and website) built on `feature/05-icon-website` (not merged): Codex's
+  icon compiled by `build.sh` with actool from `Resources/AppIcon.icon` into `Assets.car` plus a
+  fallback `.icns`, `CFBundleIconName` set; `NSWorkspace` shows it filling the squircle. The
+  overview tells of the friction drum (EN and CS, same tags), Codex restyled the site in the
+  Modrotisk palette with a hero jug and a floral divider, and `fanfrnoch-window.png` is the real
+  app. 290 tests green, release build OK (`phases/05-icon-website/VERIFICATION.md`). Building now
+  needs Xcode. Open: the icon in the Dock and Finder, the site in Safari and on a phone. Next:
+  merge, then phase 06-v1.0.0-release (pushes only after the author's OK).
 - 2026-11-24 — phase 04 (app and Audio Unit) built on `feature/04-app-and-audiounit` (not merged):
   the panel is concept 1 "Modrotisk" (`PanelLayout`: Stroke | Hands | Pitch over Friction | Body |
   Noise, Master on the right; window 1100 × 732 pt), the upright drum in both footers; presets,
